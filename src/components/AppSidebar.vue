@@ -8,7 +8,7 @@
       
       <router-link to="/assemblies" class="nav-item" active-class="active">
         <span class="icon">🔭</span>
-        <span class="text">Сборки телескопов</span>
+        <span class="text">Мои сборки</span>  <!-- ← Переименовали -->
       </router-link>
       
       <router-link to="/my-observations" class="nav-item" active-class="active">

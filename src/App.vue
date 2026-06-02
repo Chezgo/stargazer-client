@@ -22,6 +22,9 @@
       </main>
     </div>
     <AppFooter />
+    
+    <!-- Toast уведомления -->
+    <Toast />
   </div>
 </template>
 
@@ -32,6 +35,7 @@ import { useAuthStore } from '@/stores/auth';
 import AppHeader from '@/components/AppHeader.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import AppFooter from '@/components/AppFooter.vue';
+import Toast from '@/components/Toast.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();

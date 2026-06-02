@@ -18,7 +18,14 @@ const routes = [
     path: '/assemblies',
     name: 'Assemblies',
     component: () => import('@/views/Assemblies.vue'),
-    meta: { title: 'Сборки телескопов', requiresAuth: true }
+    meta: { title: 'Мои сборки', requiresAuth: true }
+  },
+  {
+    path: '/assemblies/:id',
+    name: 'AssemblyDetail',
+    component: () => import('@/views/AssemblyDetail.vue'),
+    meta: { title: 'Сборка', requiresAuth: true },
+    props: true
   },
   {
     path: '/my-observations',
