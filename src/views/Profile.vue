@@ -9,7 +9,7 @@
     <!-- Профиль загружен -->
     <div v-else-if="authStore.userProfile" class="profile-content">
       <div class="page-header">
-        <h1>👤 Профиль пользователя</h1>
+        <h1>👤 Профиль</h1>
         <p class="page-subtitle">Твоя личная информация</p>
       </div>
 
@@ -26,20 +26,12 @@
 
         <div class="profile-details">
           <div class="detail-row">
-            <label>ID профиля:</label>
-            <span>#{{ authStore.userProfile.id }}</span>
-          </div>
-          <div class="detail-row">
             <label>Имя пользователя:</label>
             <span>{{ authStore.userProfile.name }}</span>
           </div>
           <div class="detail-row">
             <label>Email:</label>
             <span>{{ authStore.userInfo?.email }}</span>
-          </div>
-          <div class="detail-row" v-if="authStore.userProfile.description">
-            <label>Описание:</label>
-            <span>{{ authStore.userProfile.description }}</span>
           </div>
           <div class="detail-row" v-if="authStore.userInfo?.email_verified">
             <label>Email подтверждён:</label>
@@ -133,13 +125,21 @@ onMounted(async () => {
   margin-top: 0.25rem;
 }
 
+.card {
+  background: #111827;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
 .profile-header {
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  padding: 1.5rem;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 1.5rem;
   margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
 .avatar {
@@ -153,6 +153,7 @@ onMounted(async () => {
   font-size: 2rem;
   font-weight: 700;
   color: white;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .user-info h2 {
@@ -167,18 +168,24 @@ onMounted(async () => {
 
 .profile-details {
   display: grid;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .detail-row {
   display: flex;
   justify-content: space-between;
-  padding: 0.75rem 0;
+  align-items: center;
+  padding: 1rem 0;
   border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.detail-row:last-child {
+  border-bottom: none;
 }
 
 .detail-row label {
   color: #94a3b8;
+  font-size: 0.95rem;
 }
 
 .detail-row span {
@@ -188,6 +195,7 @@ onMounted(async () => {
 
 .badge-success {
   color: #4ade80;
+  font-weight: 600;
 }
 
 .quick-links {
@@ -195,8 +203,9 @@ onMounted(async () => {
 }
 
 .quick-links h3 {
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
   color: #e0e7ff;
+  font-size: 1.2rem;
 }
 
 .links-grid {
@@ -209,19 +218,21 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 1rem;
+  padding: 1.25rem;
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 8px;
   color: #93c5fd;
   text-decoration: none;
   transition: all 0.2s;
+  font-weight: 500;
 }
 
 .quick-link:hover {
   background: rgba(59, 130, 246, 0.2);
   border-color: #60a5fa;
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
 .quick-link .icon {
@@ -241,5 +252,19 @@ onMounted(async () => {
 .error-state p {
   margin-bottom: 1.5rem;
   color: #94a3b8;
+}
+
+/* Адаптив */
+@media (max-width: 640px) {
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
 }
 </style>
