@@ -19,10 +19,6 @@
     <!-- Карточка сборки -->
     <div v-else-if="assembly" class="card detail-card">
       <div class="detail-row">
-        <label>ID</label>
-        <span class="value">#{{ assembly.id }}</span>
-      </div>
-      <div class="detail-row">
         <label>Название</label>
         <span class="value">{{ assembly.name }}</span>
       </div>
@@ -36,93 +32,109 @@
       </div>
     </div>
 
-    <!-- ===== СЕКЦИЯ: Добавить деталь в сборку ===== -->
-    <div v-if="assembly" class="section">
-      <div class="section-header">
-        <h2>🔧 Добавить деталь в сборку</h2>
-        <button @click="toggleAllGroups" class="btn btn-outline btn-sm">
-          {{ allGroupsExpanded ? 'Свернуть все' : 'Развернуть все' }}
-        </button>
-      </div>
-
-      <!-- Загрузка типов деталей -->
-      <div v-if="typesLoading" class="loading-state small">
-        <div class="spinner-small"></div>
-        <p>Загрузка каталога...</p>
-      </div>
+    <!-- ===== ДВУХКОЛОНОЧНЫЙ LAYOUT ===== -->
+    <div v-if="assembly" class="two-column-layout">
       
-      <div v-else-if="typesError" class="error-state small">
-        <p>⚠️ {{ typesError }}</p>
-        <button @click="loadDetailTypes" class="btn btn-sm">Повторить</button>
-      </div>
+      <!-- ЛЕВАЯ КОЛОНКА: Добавить деталь -->
+      <div class="left-column">
+        <div class="section">
+          <div class="section-header">
+            <h2>🔧 Добавить деталь</h2>
+            <button @click="toggleAllGroups" class="btn btn-outline btn-sm">
+              {{ allGroupsExpanded ? 'Свернуть' : 'Развернуть' }}
+            </button>
+          </div>
 
-      <!-- Группы деталей -->
-      <div v-else class="groups-container">
-        <div v-for="(types, groupName) in groupedTypes" :key="groupName" class="group-card">
-          <button @click="toggleGroup(groupName)" class="group-header">
-            <span class="group-name">{{ groupName }}</span>
-            <span class="group-toggle">{{ expandedGroups[groupName] ? '−' : '+' }}</span>
-          </button>
+          <!-- Загрузка типов деталей -->
+          <div v-if="typesLoading" class="loading-state small">
+            <div class="spinner-small"></div>
+            <p>Загрузка...</p>
+          </div>
           
-          <div v-show="expandedGroups[groupName]" class="group-content">
-            <div class="types-grid">
-              <button v-for="type in types" :key="type.id" @click="openAddDetailModal(type)" class="type-btn">
-                <span class="type-icon">🔹</span>
-                <span class="type-name">{{ type.name }}</span>
-                <span class="type-desc">{{ truncate(type.description, 80) }}</span>
+          <div v-else-if="typesError" class="error-state small">
+            <p>⚠️ {{ typesError }}</p>
+            <button @click="loadDetailTypes" class="btn btn-sm">Повторить</button>
+          </div>
+
+          <!-- Группы деталей -->
+          <div v-else class="groups-container">
+            <div v-for="(types, groupName) in groupedTypes" :key="groupName" class="group-card">
+              <button @click="toggleGroup(groupName)" class="group-header">
+                <span class="group-name">{{ groupName }}</span>
+                <span class="group-toggle">{{ expandedGroups[groupName] ? '−' : '+' }}</span>
               </button>
+              
+              <div v-show="expandedGroups[groupName]" class="group-content">
+                <div class="types-grid">
+                  <button v-for="type in types" :key="type.id" @click="openAddDetailModal(type)" class="type-btn">
+                    <span class="type-icon">🔹</span>
+                    <span class="type-name">{{ type.name }}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- ===== СЕКЦИЯ: Детали в сборке ===== -->
-    <div v-if="assembly" class="section">
-      <div class="section-header">
-        <h2>📋 Детали в этой сборке</h2>
-        <button @click="fetchAssemblyDetails" class="btn btn-outline btn-sm">🔄 Обновить</button>
-      </div>
+      <!-- ПРАВАЯ КОЛОНКА: Детали в сборке -->
+      <div class="right-column">
+        <div class="section">
+          <div class="section-header">
+            <h2>📋 Детали в сборке</h2>
+            <button @click="fetchAssemblyDetails" class="btn btn-outline btn-sm">🔄 Обновить</button>
+          </div>
 
-      <div v-if="detailsLoading" class="loading-state small">
-        <div class="spinner-small"></div>
-        <p>Загрузка деталей...</p>
-      </div>
-      
-      <div v-else-if="detailsError" class="error-state small">
-        <p>⚠️ {{ detailsError }}</p>
-      </div>
+          <div v-if="detailsLoading" class="loading-state small">
+            <div class="spinner-small"></div>
+            <p>Загрузка...</p>
+          </div>
+          
+          <div v-else-if="detailsError" class="error-state small">
+            <p>⚠️ {{ detailsError }}</p>
+          </div>
 
-      <div v-else-if="assemblyDetails.length === 0" class="card">
-        <div class="empty-state">
-          <p>📭 В этой сборке пока нет деталей</p>
-          <p class="hint">Добавьте первую деталь выше</p>
-        </div>
-      </div>
-
-      <div v-else class="details-list">
-        <div v-for="item in assemblyDetails" :key="item.id" class="detail-item">
-          <div class="detail-header">
-            <h4>{{ item.detailInfo?.nameDetail || 'Загрузка...' }}</h4>
-            <div class="detail-actions">
-              <button @click="openEditDetailModal(item)" class="btn-icon" title="Редактировать">✏️</button>
-              <button @click="handleRemoveDetail(item.id)" class="btn-icon danger" title="Удалить">🗑️</button>
+          <div v-else-if="assemblyDetails.length === 0" class="card">
+            <div class="empty-state">
+              <p>📭 В этой сборке пока нет деталей</p>
+              <p class="hint">Добавьте первую деталь слева</p>
             </div>
           </div>
-          
-          <div class="detail-meta">
-            <span class="badge">{{ item.detailInfo?.nameType }}</span>
-            <span class="badge">{{ item.detailInfo?.nameBrand }}</span>
-          </div>
-          
-          <p v-if="item.description" class="detail-desc">{{ item.description }}</p>
-          
-          <!-- Краткие характеристики -->
-          <div v-if="item.detailInfo?.attribute?.length" class="detail-attrs">
-            <span v-for="attr in item.detailInfo.attribute.slice(0, 3)" :key="attr.id" class="attr-tag">
-              {{ attr.attributeName }}: <strong>{{ attr.value || '—' }}</strong>
-            </span>
-            <span v-if="item.detailInfo.attribute.length > 3" class="attr-more">+{{ item.detailInfo.attribute.length - 3 }} ещё</span>
+
+          <!-- Группы деталей по типу -->
+          <div v-else class="assembly-details-grouped">
+            <div v-for="(items, typeName) in groupedAssemblyDetails" :key="typeName" class="type-group">
+              <div class="type-group-header">
+                <h3>{{ typeName }}</h3>
+                <span class="type-count">{{ items.length }}</span>
+              </div>
+              
+              <div class="details-list">
+                <div v-for="item in items" :key="item.id" class="detail-item">
+                  <div class="detail-header">
+                    <h4>{{ item.detailInfo?.nameDetail || 'Загрузка...' }}</h4>
+                    <div class="detail-actions">
+                      <button @click="openEditDetailModal(item)" class="btn-icon" title="Редактировать">✏️</button>
+                      <button @click="handleRemoveDetail(item.id)" class="btn-icon danger" title="Удалить">🗑️</button>
+                    </div>
+                  </div>
+                  
+                  <div class="detail-meta">
+                    <span class="badge">{{ item.detailInfo?.nameBrand }}</span>
+                  </div>
+                  
+                  <p v-if="item.description" class="detail-desc">{{ item.description }}</p>
+                  
+                  <!-- Краткие характеристики -->
+                  <div v-if="item.detailInfo?.attribute?.length" class="detail-attrs">
+                    <span v-for="attr in item.detailInfo.attribute.slice(0, 3)" :key="attr.id" class="attr-tag">
+                      {{ attr.attributeName }}: <strong>{{ attr.value || '—' }}</strong>
+                    </span>
+                    <span v-if="item.detailInfo.attribute.length > 3" class="attr-more">+{{ item.detailInfo.attribute.length - 3 }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -166,7 +178,7 @@
           <!-- Список деталей -->
           <div v-if="catalogLoading" class="loading-state small">
             <div class="spinner-small"></div>
-            <p>Поиск деталей...</p>
+            <p>Поиск...</p>
           </div>
           
           <div v-else-if="catalogError" class="error-state small">
@@ -267,7 +279,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import userAssembliesApi from '@/services/userAssemblies';
 import detailTypesApi from '@/services/detailTypes';
@@ -319,6 +331,18 @@ const editDetailForm = ref({ description: '' });
 const selectedAssemblyDetail = ref(null);
 
 const assemblyId = ref(parseInt(route.params.id, 10));
+
+// ===== Группировка деталей в сборке по типу =====
+const groupedAssemblyDetails = computed(() => {
+  return assemblyDetails.value.reduce((groups, item) => {
+    const typeName = item.detailInfo?.nameType || 'Другое';
+    if (!groups[typeName]) {
+      groups[typeName] = [];
+    }
+    groups[typeName].push(item);
+    return groups;
+  }, {});
+});
 
 // ===== Загрузка сборки =====
 const fetchAssembly = async () => {
@@ -521,7 +545,7 @@ const selectDetail = async (detail) => {
     });
     
     closeAddDetailModal();
-    await fetchAssemblyDetails(); // Обновить список
+    await fetchAssemblyDetails();
     alert('✅ Деталь добавлена в сборку');
     
   } catch (err) {
@@ -584,8 +608,8 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* ===== Базовые стили (как в админке) ===== */
-.page { max-width: 1200px; margin: 0 auto; }
+/* ===== Базовые стили ===== */
+.page { max-width: 1400px; margin: 0 auto; }
 .page-header { margin-bottom: 2rem; display: flex; align-items: center; gap: 1rem; }
 .btn-back {
   background: transparent; border: 1px solid rgba(255,255,255,0.2);
@@ -605,8 +629,20 @@ onMounted(async () => {
 
 .actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); }
 
+/* ===== ДВУХКОЛОНОЧНЫЙ LAYOUT ===== */
+.two-column-layout {
+  display: grid;
+  grid-template-columns: 35% 65%;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.left-column, .right-column {
+  min-width: 0; /* Prevents grid blowout */
+}
+
 /* ===== Секции ===== */
-.section { margin-top: 2rem; }
+.section { margin-bottom: 2rem; }
 .section-header {
   display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;
 }
@@ -614,59 +650,104 @@ onMounted(async () => {
 .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
 
 /* ===== Группы типов деталей ===== */
-.groups-container { display: flex; flex-direction: column; gap: 1rem; }
+.groups-container { display: flex; flex-direction: column; gap: 0.75rem; }
 .group-card { background: #111827; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; overflow: hidden; }
 .group-header {
   width: 100%; display: flex; justify-content: space-between; align-items: center;
-  padding: 1rem 1.25rem; background: rgba(59, 130, 246, 0.1);
-  border: none; cursor: pointer; color: #e0e7ff; font-weight: 600; font-size: 1.05rem;
+  padding: 0.75rem 1rem; background: rgba(59, 130, 246, 0.1);
+  border: none; cursor: pointer; color: #e0e7ff; font-weight: 600; font-size: 1rem;
   transition: background 0.2s;
 }
 .group-header:hover { background: rgba(59, 130, 246, 0.15); }
 .group-name { flex: 1; text-align: left; }
 .group-toggle {
-  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
-  background: rgba(59, 130, 246, 0.3); border-radius: 6px; font-weight: bold;
+  width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+  background: rgba(59, 130, 246, 0.3); border-radius: 6px; font-weight: bold; font-size: 0.9rem;
 }
-.group-content { padding: 1rem 1.25rem; }
-.types-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem; }
+.group-content { padding: 0.75rem 1rem; }
+.types-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem; }
 .type-btn {
-  display: flex; flex-direction: column; align-items: flex-start;
-  padding: 1rem; background: rgba(59, 130, 246, 0.05);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0.75rem; background: rgba(59, 130, 246, 0.05);
   border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 8px;
-  cursor: pointer; transition: all 0.2s; text-align: left; color: #cbd5e1;
+  cursor: pointer; transition: all 0.2s; text-align: center; color: #cbd5e1;
 }
 .type-btn:hover {
   background: rgba(59, 130, 246, 0.15); border-color: #60a5fa;
   transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
-.type-icon { font-size: 1.2rem; margin-bottom: 0.5rem; }
-.type-name { font-weight: 600; color: #e0e7ff; margin-bottom: 0.25rem; }
-.type-desc { font-size: 0.85rem; color: #94a3b8; line-height: 1.4; }
+.type-icon { font-size: 1rem; margin-bottom: 0.25rem; }
+.type-name { font-size: 0.85rem; font-weight: 500; color: #e0e7ff; }
 
-/* ===== Детали в сборке ===== */
-.details-list { display: flex; flex-direction: column; gap: 1rem; }
+/* ===== Детали в сборке (группированные по типу) ===== */
+.assembly-details-grouped {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.type-group {
+  background: #111827;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.type-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: rgba(59, 130, 246, 0.1);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.type-group-header h3 {
+  margin: 0;
+  color: #e0e7ff;
+  font-size: 1.1rem;
+}
+
+.type-count {
+  background: rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.details-list {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .detail-item {
-  background: #111827; border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 12px; padding: 1.25rem;
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
 }
-.detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; }
-.detail-header h4 { margin: 0; color: #e0e7ff; font-size: 1.1rem; }
+
+.detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+.detail-header h4 { margin: 0; color: #e0e7ff; font-size: 1rem; }
 .detail-actions { display: flex; gap: 0.5rem; }
-.detail-meta { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+.detail-meta { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
 .badge {
-  display: inline-block; padding: 0.25rem 0.6rem;
+  display: inline-block; padding: 0.2rem 0.5rem;
   background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 20px; font-size: 0.8rem; color: #93c5fd;
+  border-radius: 20px; font-size: 0.75rem; color: #93c5fd;
 }
-.detail-desc { color: #cbd5e1; margin: 0 0 0.75rem; font-size: 0.95rem; }
-.detail-attrs { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.detail-desc { color: #cbd5e1; margin: 0 0 0.5rem; font-size: 0.9rem; }
+.detail-attrs { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .attr-tag {
-  font-size: 0.85rem; color: #94a3b8;
-  background: rgba(59, 130, 246, 0.1); padding: 0.25rem 0.5rem; border-radius: 4px;
+  font-size: 0.8rem; color: #94a3b8;
+  background: rgba(59, 130, 246, 0.1); padding: 0.2rem 0.4rem; border-radius: 4px;
 }
 .attr-tag strong { color: #60a5fa; }
-.attr-more { font-size: 0.85rem; color: #64748b; }
+.attr-more { font-size: 0.8rem; color: #64748b; }
 
 /* ===== Фильтры в модалке ===== */
 .filters-bar {
@@ -798,4 +879,15 @@ onMounted(async () => {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #1e3a8a; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #2563eb; }
+
+/* ===== Адаптив ===== */
+@media (max-width: 1024px) {
+  .two-column-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .left-column, .right-column {
+    width: 100%;
+  }
+}
 </style>
