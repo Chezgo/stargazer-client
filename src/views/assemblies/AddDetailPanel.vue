@@ -1,8 +1,12 @@
 <template>
   <div class="section">
     <div class="section-header">
-      <h2>🔧 Добавить деталь</h2>
+      <h2>
+        <Wrench class="section-icon" />
+        Добавить деталь
+      </h2>
       <button @click="$emit('toggle-all')" class="btn btn-outline btn-sm">
+        <component :is="allExpanded ? Minus : Plus" class="btn-icon" />
         {{ allExpanded ? 'Свернуть' : 'Развернуть' }}
       </button>
     </div>
@@ -28,7 +32,9 @@
       >
         <button @click="$emit('toggle-group', groupName)" class="group-header">
           <span class="group-name">{{ groupName }}</span>
-          <span class="group-toggle">{{ expandedGroups[groupName] ? '−' : '+' }}</span>
+          <span class="group-toggle">
+            <component :is="expandedGroups[groupName] ? Minus : Plus" class="toggle-icon" />
+          </span>
         </button>
         
         <div v-show="expandedGroups[groupName]" class="group-content">
@@ -44,7 +50,7 @@
               :disabled="!hasGoal ? false : !type.isCompatible"
               :title="getTypeTitle(type)"
             >
-              <span class="type-icon">{{ getTypeIcon(type) }}</span>
+              <component :is="getTypeIconComponent(type)" class="type-icon" />
               <span class="type-name">{{ type.name }}</span>
             </button>
           </div>
@@ -55,6 +61,14 @@
 </template>
 
 <script setup>
+import { 
+  Wrench, 
+  Plus, 
+  Minus, 
+  CheckCircle, 
+  XCircle 
+} from 'lucide-vue-next';
+
 const props = defineProps({
   types: Object,
   expandedGroups: Object,
@@ -66,9 +80,9 @@ const props = defineProps({
 
 const emit = defineEmits(['toggle-group', 'toggle-all', 'reload', 'add-detail']);
 
-const getTypeIcon = (type) => {
-  if (!props.hasGoal) return '✓';
-  return type.isCompatible ? '✓' : '✗';
+const getTypeIconComponent = (type) => {
+  if (!props.hasGoal) return CheckCircle;
+  return type.isCompatible ? CheckCircle : XCircle;
 };
 
 const getTypeTitle = (type) => {
@@ -83,7 +97,18 @@ const getTypeTitle = (type) => {
   display: flex; justify-content: space-between; align-items: center; 
   margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;
 }
-.section-header h2 { margin: 0; font-size: 1.3rem; color: #e0e7ff; }
+.section-header h2 { 
+  margin: 0; 
+  font-size: 1.3rem; 
+  color: #e0e7ff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.section-icon {
+  width: 20px;
+  height: 20px;
+}
 .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
 
 .groups-container { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -108,12 +133,15 @@ const getTypeTitle = (type) => {
 .group-header:hover { background: rgba(59, 130, 246, 0.15); }
 .group-name { flex: 1; text-align: left; }
 .group-toggle {
-  width: 24px; height: 24px; 
+  width: 28px; height: 28px; 
   display: flex; align-items: center; justify-content: center;
   background: rgba(59, 130, 246, 0.3); 
   border-radius: 6px; 
-  font-weight: bold; 
-  font-size: 0.9rem;
+  font-weight: bold;
+}
+.toggle-icon {
+  width: 16px;
+  height: 16px;
 }
 .group-content { padding: 0.75rem 1rem; }
 .types-grid { 
@@ -132,6 +160,7 @@ const getTypeTitle = (type) => {
   transition: all 0.2s; 
   text-align: center; 
   color: #cbd5e1;
+  gap: 0.5rem;
 }
 .type-btn:hover:not(:disabled) {
   background: rgba(34, 197, 94, 0.2); 
@@ -148,7 +177,10 @@ const getTypeTitle = (type) => {
   opacity: 0.6;
 }
 
-.type-icon { font-size: 1rem; margin-bottom: 0.25rem; font-weight: 700; }
+.type-icon { 
+  width: 20px; 
+  height: 20px; 
+}
 .type-btn:not(.type-incompatible) .type-icon { color: #4ade80; }
 .type-btn.type-incompatible .type-icon { color: #ef4444; }
 .type-name { font-size: 0.85rem; font-weight: 500; color: #e0e7ff; }

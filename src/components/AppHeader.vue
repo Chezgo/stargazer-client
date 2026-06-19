@@ -1,10 +1,17 @@
 <template>
   <header class="app-header">
     <div class="container">
-      <router-link to="/profile" class="logo">🔭 Stargazer</router-link>
+      <router-link to="/profile" class="logo">
+        <Telescope class="logo-icon" />
+        <span>Stargazer</span>
+      </router-link>
+      
       <div class="user-menu">
         <span class="username">{{ authStore.getDisplayName }}</span>
-        <button @click="authStore.logout" class="btn btn-outline">Выйти</button>
+        <button @click="authStore.logout" class="btn btn-outline">
+          <LogOut class="btn-icon" />
+          Выйти
+        </button>
       </div>
     </div>
   </header>
@@ -12,10 +19,35 @@
 
 <script setup>
 import { useAuthStore } from '@/stores/auth';
+import { Telescope, Sparkles, LogOut } from 'lucide-vue-next';
 const authStore = useAuthStore();
 </script>
 
 <style scoped>
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #60a5fa;
+  text-decoration: none;
+}
+
+.logo-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.btn-icon {
+  width: 16px;
+  height: 16px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 .app-header {
   background: #111827;
   border-bottom: 1px solid rgba(59, 130, 246, 0.3);

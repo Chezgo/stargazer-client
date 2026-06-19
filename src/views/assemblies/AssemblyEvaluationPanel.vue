@@ -1,9 +1,13 @@
 <template>
   <div class="evaluation-panel">
     <div class="panel-header">
-      <h3>📋 Детальный чек-лист</h3>
+      <h3>
+        <ClipboardList class="section-icon" />
+        Детальный чек-лист
+      </h3>
       <button @click="$emit('close')" class="btn btn-sm btn-outline">
-        ✕ Свернуть
+        <X class="btn-icon" />
+        Свернуть
       </button>
     </div>
 
@@ -15,7 +19,7 @@
       >
         <div class="checklist-header">
           <span class="checklist-icon">
-            {{ getStatusIcon(item.itemStatus) }}
+            <component :is="getStatusIconComponent(item.itemStatus)" class="icon" />
           </span>
           <div class="checklist-info">
             <strong>{{ item.typeName }}</strong>
@@ -29,7 +33,8 @@
         </div>
         
         <p v-if="item.adviceText" class="checklist-advice">
-          💡 {{ item.adviceText }}
+          <Lightbulb class="advice-icon" />
+          {{ item.adviceText }}
         </p>
         
         <button 
@@ -37,7 +42,8 @@
           @click="$emit('add-missing-type', item.typeName)"
           class="btn btn-sm btn-primary"
         >
-          + Добавить {{ item.typeName }}
+          <Plus class="btn-icon" />
+          Добавить {{ item.typeName }}
         </button>
       </div>
     </div>
@@ -45,6 +51,26 @@
 </template>
 
 <script setup>
+
+import { 
+  ClipboardList, 
+  X, 
+  CheckCircle, 
+  AlertTriangle, 
+  XCircle, 
+  Lightbulb, 
+  Plus 
+} from 'lucide-vue-next';
+
+const getStatusIconComponent = (status) => {
+  switch (status) {
+    case 'OK': return CheckCircle;
+    case 'PARTIAL': return AlertTriangle;
+    case 'MISSING': return XCircle;
+    default: return XCircle;
+  }
+};
+
 const props = defineProps({
   evaluation: Object
 });
@@ -71,6 +97,26 @@ const getRequirementText = (type) => {
 </script>
 
 <style scoped>
+.section-icon, .btn-icon, .advice-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.checklist-icon .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.item-ok .checklist-icon .icon { color: #22c55e; }
+.item-partial .checklist-icon .icon { color: #f59e0b; }
+.item-missing .checklist-icon .icon { color: #ef4444; }
+
+.advice-icon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 0.25rem;
+  color: #94a3b8;
+}
 .evaluation-panel {
   margin-top: 1.5rem;
   background: #111827;

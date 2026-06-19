@@ -9,7 +9,10 @@
     <!-- Профиль загружен -->
     <div v-else-if="authStore.userProfile" class="profile-content">
       <div class="page-header">
-        <h1>👤 Профиль</h1>
+        <h1>
+          <User class="page-icon" />
+          Профиль
+        </h1>
         <p class="page-subtitle">Твоя личная информация</p>
       </div>
 
@@ -35,7 +38,10 @@
           </div>
           <div class="detail-row" v-if="authStore.userInfo?.email_verified">
             <label>Email подтверждён:</label>
-            <span class="badge-success">✓ Да</span>
+            <span class="badge-success">
+              <CheckCircle class="badge-icon" />
+              Да
+            </span>
           </div>
         </div>
       </div>
@@ -44,15 +50,15 @@
         <h3>Быстрый доступ</h3>
         <div class="links-grid">
           <router-link to="/assemblies" class="quick-link">
-            <span class="icon">🔭</span>
+            <Telescope class="link-icon" />
             <span>Мои сборки</span>
           </router-link>
           <router-link to="/my-observations" class="quick-link">
-            <span class="icon">📸</span>
+            <Camera class="link-icon" />
             <span>Наблюдения</span>
           </router-link>
           <router-link to="/feed" class="quick-link">
-            <span class="icon">🌟</span>
+            <Star class="link-icon" />
             <span>Лента</span>
           </router-link>
         </div>
@@ -62,7 +68,10 @@
     <!-- Ошибка загрузки -->
     <div v-else-if="profileError" class="error-state">
       <div class="card">
-        <h2>⚠️ Ошибка загрузки профиля</h2>
+        <h2>
+          <AlertTriangle class="error-icon" />
+          Ошибка загрузки профиля
+        </h2>
         <p>{{ profileError }}</p>
         <button @click="retryLoadProfile" class="btn btn-primary">Повторить</button>
       </div>
@@ -73,6 +82,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { User, Telescope, Camera, Star, CheckCircle, AlertTriangle } from 'lucide-vue-next';
 
 const authStore = useAuthStore();
 const profileError = ref(null);
@@ -120,6 +130,19 @@ onMounted(async () => {
 .page-header {
   margin-bottom: 2rem;
 }
+
+.page-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.page-icon {
+  width: 28px;
+  height: 28px;
+  color: #60a5fa;
+}
+
 .page-subtitle {
   color: #94a3b8;
   margin-top: 0.25rem;
@@ -196,6 +219,14 @@ onMounted(async () => {
 .badge-success {
   color: #4ade80;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.badge-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .quick-links {
@@ -235,8 +266,10 @@ onMounted(async () => {
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
-.quick-link .icon {
-  font-size: 1.5rem;
+.link-icon {
+  width: 24px;
+  height: 24px;
+  color: #60a5fa;
 }
 
 .error-state {
@@ -247,6 +280,15 @@ onMounted(async () => {
 .error-state h2 {
   margin-bottom: 1rem;
   color: #fca5a5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.error-icon {
+  width: 24px;
+  height: 24px;
 }
 
 .error-state p {

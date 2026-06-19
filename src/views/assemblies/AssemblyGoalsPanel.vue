@@ -1,7 +1,10 @@
 <template>
   <div class="section goal-section">
     <div class="section-header">
-      <h2>🎯 Цель сборки</h2>
+      <h2>
+        <Target class="section-icon" />
+        Цель сборки
+      </h2>
     </div>
     
     <div class="goal-selector">
@@ -21,7 +24,6 @@
       </div>
     </div>
 
-    <!-- Прогресс-бар оценки -->
     <div v-if="evaluation && selectedGoalId" class="evaluation-summary">
       <div class="evaluation-header">
         <h3>Оценка сборки</h3>
@@ -46,13 +48,15 @@
       </div>
 
       <button @click="$emit('show-checklist')" class="btn btn-sm btn-outline">
-        📋 Показать детальный чек-лист
+        <ListChecks class="btn-icon" />
+        Показать детальный чек-лист
       </button>
     </div>
   </div>
 </template>
 
 <script setup>
+import { Target, ListChecks } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = defineProps({
@@ -91,6 +95,17 @@ const onGoalChange = (event) => {
 </script>
 
 <style scoped>
+.section-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
+.btn-icon {
+  width: 16px;
+  height: 16px;
+}
 .goal-section {
   margin-bottom: 1.5rem;
 }

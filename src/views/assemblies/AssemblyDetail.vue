@@ -1,14 +1,17 @@
 <template>
   <div class="page">
     <div class="page-header">
-      <button @click="$router.back()" class="btn btn-back">← Назад</button>
+      <button @click="$router.back()" class="btn btn-back">
+        <ArrowLeft class="btn-icon" />
+        Назад
+      </button>
       <h1>{{ assembly?.name || 'Загрузка...' }}</h1>
     </div>
 
     <!-- Состояния загрузки -->
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
-      <p>Загрузка...</p>
+      <p>Загрузка сборки...</p>
     </div>
     
     <div v-else-if="error" class="error-state">
@@ -28,19 +31,26 @@
           <p class="description">{{ assembly.description || '—' }}</p>
         </div>
         <div class="actions">
-          <button @click="openEditModal" class="btn">✏️ Редактировать</button>
-          <button @click="handleDelete" class="btn btn-danger">🗑️ Удалить</button>
+          <button @click="openEditModal" class="btn">
+            <Pencil class="btn-icon" />
+            Редактировать
+          </button>
+          <button @click="handleDelete" class="btn btn-danger">
+            <Trash2 class="btn-icon" />
+            Удалить
+          </button>
         </div>
       </div>
 
+      <!-- Цель сборки -->
       <AssemblyGoalsPanel
-  :assembly-goals="assemblyGoals"
-  v-model:selectedGoalId="selectedGoalId"
-  :evaluation="evaluation"
-  @show-checklist="showChecklist = !showChecklist"
-/>
+        :assembly-goals="assemblyGoals"
+        v-model:selectedGoalId="selectedGoalId"
+        :evaluation="evaluation"
+        @show-checklist="showChecklist = !showChecklist"
+      />
 
-      <!-- Детальный чек-лист (раскрывается по кнопке) -->
+      <!-- Чек-лист -->
       <AssemblyEvaluationPanel
         v-if="showChecklist && evaluation"
         :evaluation="evaluation"
@@ -50,8 +60,6 @@
 
       <!-- Двухколоночный layout -->
       <div class="two-column-layout">
-        
-        <!-- Левая колонка: Добавление деталей -->
         <div class="left-column">
           <AddDetailPanel
             :types="displayAvailableTypes"
@@ -67,7 +75,6 @@
           />
         </div>
 
-        <!-- Правая колонка: Список деталей -->
         <div class="right-column">
           <AssemblyDetailsPanel
             :details="assemblyDetails"
@@ -106,7 +113,9 @@
       <div class="modal">
         <div class="modal-header">
           <h2>Редактировать деталь</h2>
-          <button @click="closeEditDetailModal" class="close-btn">×</button>
+          <button @click="closeEditDetailModal" class="close-btn">
+            <X class="icon" />
+          </button>
         </div>
         
         <form @submit.prevent="submitEditDetail" class="modal-body">
@@ -141,7 +150,9 @@
       <div class="modal">
         <div class="modal-header">
           <h2>Редактировать сборку</h2>
-          <button @click="closeEditModal" class="close-btn">×</button>
+          <button @click="closeEditModal" class="close-btn">
+            <X class="icon" />
+          </button>
         </div>
         <form @submit.prevent="submitEdit" class="modal-body">
           <div class="form-group">
@@ -167,6 +178,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { ArrowLeft, Pencil, Trash2, X } from 'lucide-vue-next';
 
 // Composables
 import { useAssembly } from '@/composables/useAssembly';
@@ -182,7 +194,7 @@ import AddDetailPanel from './AddDetailPanel.vue';
 import AssemblyDetailsPanel from './AssemblyDetailsPanel.vue';
 import DetailCatalogModal from './DetailCatalogModal.vue';
 
-// Services (для добавления детали)
+// Services
 import assemblyDetailsApi from '@/services/assemblyDetails';
 
 const route = useRoute();
@@ -233,7 +245,6 @@ const {
 
 // ===== Бизнес-логика =====
 
-// При изменении деталей — пересчитываем всё
 const onDetailsChanged = async () => {
   await fetchAssemblyDetails();
   if (selectedGoalId.value) {
@@ -242,7 +253,6 @@ const onDetailsChanged = async () => {
   await loadAvailableTypes();
 };
 
-// Добавление детали из каталога в сборку
 const selectDetail = async (detail) => {
   try {
     await assemblyDetailsApi.addToAssembly(assemblyId.value, {
@@ -253,7 +263,6 @@ const selectDetail = async (detail) => {
     closeAddDetailModal();
     await onDetailsChanged();
     
-    // Toast-уведомление (если есть)
     if (window.$toast) {
       window.$toast.success('Деталь добавлена в сборку', 'Успешно');
     } else {
@@ -270,7 +279,6 @@ const selectDetail = async (detail) => {
   }
 };
 
-// Добавление недостающего типа из чек-листа
 const addMissingType = async (typeName) => {
   let targetType = null;
   for (const group of Object.values(displayAvailableTypes.value)) {
@@ -297,9 +305,6 @@ onMounted(async () => {
     fetchAssemblyDetails()
   ]);
 });
-
-console.log('🔧 assemblyId:', assemblyId.value);
-console.log('🔧 selectedGoalId:', selectedGoalId.value);
 </script>
 
 <style scoped>
@@ -309,8 +314,16 @@ console.log('🔧 selectedGoalId:', selectedGoalId.value);
 .btn-back {
   background: transparent; border: 1px solid rgba(255,255,255,0.2);
   color: #94a3b8; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 .btn-back:hover { border-color: #60a5fa; color: #fff; }
+
+.btn-icon {
+  width: 16px;
+  height: 16px;
+}
 
 .card { 
   background: #111827; 
@@ -361,21 +374,34 @@ console.log('🔧 selectedGoalId:', selectedGoalId.value);
   background: #111827; border: 1px solid rgba(59, 130, 246, 0.4);
   border-radius: 12px; width: 90%; max-width: 500px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
 }
 .modal-header {
   display: flex; justify-content: space-between; align-items: center;
   padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  flex-shrink: 0;
 }
 .modal-header h2 { margin: 0; font-size: 1.2rem; color: #e0e7ff; }
 .close-btn { 
   background: none; border: none; 
-  color: #94a3b8; font-size: 1.5rem; cursor: pointer; 
+  color: #94a3b8; cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+}
+.close-btn .icon {
+  width: 20px;
+  height: 20px;
 }
 .close-btn:hover { color: #fff; }
-.modal-body { padding: 1.5rem; }
+.modal-body { padding: 1.5rem; overflow-y: auto; flex: 1; }
 .modal-footer {
   display: flex; justify-content: flex-end; gap: 0.75rem;
   padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);
+  flex-shrink: 0;
 }
 
 .form-group { margin-bottom: 1.25rem; }

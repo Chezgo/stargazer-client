@@ -1,19 +1,27 @@
 <template>
   <div class="page">
     <div class="page-header">
-      <h1>📸 Мои наблюдения</h1>
+      <h1>
+        <Camera class="page-icon" />
+        Мои наблюдения
+      </h1>
       <p class="page-subtitle">Твои астрофотографии</p>
       <button @click="openUploadModal" class="btn btn-primary">
-        <span>⬆️</span> Загрузить фото
+        <Upload class="btn-icon" />
+        Загрузить фото
       </button>
     </div>
 
     <!-- Пагинация -->
     <div class="controls-bar">
       <div class="page-control">
-        <button @click="prevPage" :disabled="currentPage === 0" class="btn-icon">←</button>
+        <button @click="prevPage" :disabled="currentPage === 0" class="btn-icon">
+          <ChevronLeft class="icon" />
+        </button>
         <span class="page-info">Стр. {{ currentPage + 1 }} из {{ totalPages }}</span>
-        <button @click="nextPage" :disabled="currentPage >= totalPages - 1" class="btn-icon">→</button>
+        <button @click="nextPage" :disabled="currentPage >= totalPages - 1" class="btn-icon">
+          <ChevronRight class="icon" />
+        </button>
       </div>
       <span class="total-count">Всего: {{ totalElements }}</span>
     </div>
@@ -25,7 +33,8 @@
     </div>
     
     <div v-else-if="error" class="error-state">
-      <p>⚠️ {{ error }}</p>
+      <AlertTriangle class="error-icon" />
+      <p>{{ error }}</p>
       <button @click="fetchPhotos" class="btn">Повторить</button>
     </div>
 
@@ -52,19 +61,25 @@
         
         <div class="photo-info">
           <span class="assembly-badge" v-if="photo.telescopeAssemblyId">
-            🔭 Сборка #{{ photo.telescopeAssemblyId }}
+            <Telescope class="badge-icon" />
+            Сборка #{{ photo.telescopeAssemblyId }}
           </span>
           <span class="date">{{ formatDate(photo.createdAt) }}</span>
         </div>
         
         <div class="photo-actions" @click.stop>
-          <button @click="openPhotoDetail(photo)" class="btn-icon" title="Открыть">👁️</button>
-          <button @click="handleDeletePhoto(photo.idPhoto)" class="btn-icon danger" title="Удалить">🗑️</button>
+          <button @click="openPhotoDetail(photo)" class="btn-icon" title="Открыть">
+            <Eye class="icon" />
+          </button>
+          <button @click="handleDeletePhoto(photo.idPhoto)" class="btn-icon danger" title="Удалить">
+            <Trash2 class="icon" />
+          </button>
         </div>
       </div>
       
       <div v-if="photos.length === 0" class="empty-gallery">
-        <p>📭 Нет загруженных фотографий</p>
+        <Inbox class="empty-icon" />
+        <p>Нет загруженных фотографий</p>
         <button @click="openUploadModal" class="btn btn-primary">Загрузить первое фото</button>
       </div>
     </div>
@@ -74,58 +89,56 @@
       <div class="modal">
         <div class="modal-header">
           <h2>Загрузить фотографию</h2>
-          <button @click="closeUploadModal" class="close-btn">×</button>
+          <button @click="closeUploadModal" class="close-btn">
+            <X class="icon" />
+          </button>
         </div>
         
         <form @submit.prevent="submitUpload" class="modal-body">
           <!-- Drop zone с улучшенным drag-and-drop -->
           <div class="upload-area">
-  <!-- Drop zone только для drag-and-drop -->
-  <div 
-    v-if="!selectedFile"
-    ref="dropZoneRef"
-    class="drop-zone" 
-    :class="{ 'drop-zone-active': isDragOver, 'drop-zone-error': uploadError }"
-    @dragover.prevent="onDragOver"
-    @dragenter.prevent="onDragEnter"
-    @dragleave.prevent="onDragLeave"
-    @drop.prevent="onDrop"
-  >
-    <div class="drop-zone-content">
-      <svg class="drop-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M12 16V4m0 0L8 8m4-4l4 4M20 16v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2"/>
-      </svg>
-      <p class="drop-text">Перетащите фото сюда</p>
-      <p class="drop-hint">или</p>
-      <!-- Кнопка для вызова input -->
-      <button type="button" @click="triggerFileInput" class="btn btn-outline btn-sm">
-        📁 Выбрать файл
-      </button>
-    </div>
-  </div>
+            <div 
+              v-if="!selectedFile"
+              ref="dropZoneRef"
+              class="drop-zone" 
+              :class="{ 'drop-zone-active': isDragOver, 'drop-zone-error': uploadError }"
+              @dragover.prevent="onDragOver"
+              @dragenter.prevent="onDragEnter"
+              @dragleave.prevent="onDragLeave"
+              @drop.prevent="onDrop"
+            >
+              <div class="drop-zone-content">
+                <Upload class="drop-icon" :size="48" />
+                <p class="drop-text">Перетащите фото сюда</p>
+                <p class="drop-hint">или</p>
+                <button type="button" @click="triggerFileInput" class="btn btn-outline btn-sm">
+                  <Folder class="btn-icon" />
+                  Выбрать файл
+                </button>
+              </div>
+            </div>
 
-  <!-- Превью выбранного файла -->
-  <div v-else class="file-preview">
-    <img :src="uploadPreview" alt="Preview" class="preview-image">
-    <p class="preview-name">{{ selectedFile?.name }}</p>
-    <p class="preview-size">{{ formatFileSize(selectedFile?.size) }}</p>
-    <button @click="clearSelectedFile" type="button" class="btn-remove">
-      🗑️ Удалить
-    </button>
-  </div>
+            <div v-else class="file-preview">
+              <img :src="uploadPreview" alt="Preview" class="preview-image">
+              <p class="preview-name">{{ selectedFile?.name }}</p>
+              <p class="preview-size">{{ formatFileSize(selectedFile?.size) }}</p>
+              <button @click="clearSelectedFile" type="button" class="btn-remove">
+                <Trash2 class="btn-icon" />
+                Удалить
+              </button>
+            </div>
 
-  <!-- Скрытый input (вызывается программно) -->
-  <input 
-    ref="fileInputRef"
-    type="file" 
-    @change="handleFileSelect" 
-    accept="image/*"
-    class="hidden-file-input"
-    style="display: none;"
-  >
-</div>
+            <input 
+              ref="fileInputRef"
+              type="file" 
+              @change="handleFileSelect" 
+              accept="image/*"
+              class="hidden-file-input"
+              style="display: none;"
+            >
+          </div>
 
-<small class="hint">Поддерживаются: JPG, PNG, WEBP (макс. 50 МБ)</small>
+          <small class="hint">Поддерживаются: JPG, PNG, WEBP (макс. 50 МБ)</small>
 
           <!-- Привязка к сборке -->
           <div class="form-group">
@@ -167,7 +180,9 @@
       <div class="modal modal-xl">
         <div class="modal-header">
           <h2>{{ selectedPhoto?.originalFilename }}</h2>
-          <button @click="closeDetailModal" class="close-btn">×</button>
+          <button @click="closeDetailModal" class="close-btn">
+            <X class="icon" />
+          </button>
         </div>
         
         <div class="modal-body modal-body-scroll">
@@ -219,7 +234,8 @@
         
         <div class="modal-footer">
           <button @click="handleDeletePhoto(selectedPhoto?.idPhoto)" class="btn btn-danger">
-            🗑️ Удалить фото
+            <Trash2 class="btn-icon" />
+            Удалить фото
           </button>
           <button @click="closeDetailModal" class="btn">Закрыть</button>
         </div>
@@ -233,6 +249,19 @@ import { ref, onMounted } from 'vue';
 import userPhotosApi from '@/services/userPhotos';
 import assemblyDetailsApi from '@/services/assemblyDetails';
 import detailsInfoApi from '@/services/detailsInfo';
+import { 
+  Camera, 
+  Upload, 
+  ChevronLeft, 
+  ChevronRight, 
+  AlertTriangle, 
+  Telescope, 
+  Eye, 
+  Trash2, 
+  Inbox, 
+  Folder, 
+  X 
+} from 'lucide-vue-next';
 
 const photos = ref([]);
 const retriedPhotos = ref(new Set());
@@ -283,7 +312,7 @@ const formatFileSize = (bytes) => {
   return `${bytes.toFixed(1)} ${units[i]}`;
 };
 
-// Toast уведомления (глобальный объект из Toast.vue)
+// Toast уведомления
 const toast = {
   success: (message, title) => window.$toast?.success(message, title),
   error: (message, title) => window.$toast?.error(message, title),
@@ -310,7 +339,6 @@ const onDragEnter = (e) => {
 
 const onDragLeave = (e) => {
   e.preventDefault();
-  // Проверяем, что уходим именно из drop zone
   if (!e.relatedTarget || !dropZoneRef.value?.contains(e.relatedTarget)) {
     isDragOver.value = false;
   }
@@ -332,21 +360,18 @@ const handleFileSelect = (event) => {
   if (files.length > 0) {
     processFile(files[0]);
   }
-  // Сбрасываем input, чтобы можно было выбрать тот же файл снова
   event.target.value = '';
 };
 
 const processFile = (file) => {
   uploadError.value = null;
   
-  // Валидация типа
   if (!file.type.startsWith('image/')) {
     uploadError.value = 'Пожалуйста, выберите изображение (JPG, PNG, WEBP)';
     toast.error('Файл должен быть изображением', 'Неверный тип файла');
     return;
   }
   
-  // Валидация размера (50 MB)
   const maxSize = 50 * 1024 * 1024;
   if (file.size > maxSize) {
     uploadError.value = 'Файл слишком большой (макс. 50 МБ)';
@@ -356,7 +381,6 @@ const processFile = (file) => {
   
   selectedFile.value = file;
   
-  // Превью
   const reader = new FileReader();
   reader.onload = (e) => {
     uploadPreview.value = e.target.result;
@@ -615,6 +639,104 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ===== Иконки Lucide ===== */
+/* Пробрасываем стили внутрь SVG */
+:deep(svg.lucide) {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.page-icon {
+  width: 28px !important;
+  height: 28px !important;
+  color: #60a5fa;
+}
+
+.error-icon {
+  width: 24px !important;
+  height: 24px !important;
+  color: #fca5a5;
+}
+
+.empty-icon {
+  width: 48px !important;
+  height: 48px !important;
+  color: #64748b;
+  margin-bottom: 1rem;
+}
+
+.badge-icon {
+  width: 14px !important;
+  height: 14px !important;
+  margin-right: 0.25rem;
+}
+
+.drop-icon {
+  width: 48px !important;
+  height: 48px !important;
+  color: #60a5fa;
+  transition: transform 0.3s ease;
+}
+
+.drop-zone-active .drop-icon {
+  transform: scale(1.1);
+  color: #93c5fd;
+}
+
+/* ===== Базовые стили ===== */
+.page { max-width: 1400px; margin: 0 auto; }
+.page-header { 
+  display: flex; justify-content: space-between; align-items: center; 
+  margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
+}
+.page-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.page-subtitle { color: #94a3b8; margin: 0.25rem 0 0; }
+
+.controls-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 1.5rem; padding: 0.75rem 1rem;
+  background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px; flex-wrap: wrap; gap: 1rem;
+}
+.page-control { display: flex; align-items: center; gap: 0.5rem; }
+.page-info, .total-count { color: #94a3b8; font-size: 0.9rem; }
+
+/* ===== Кнопки-иконки (стрелки, действия) ===== */
+.btn-icon {
+  background: rgba(0,0,0,0.7); 
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px; 
+  padding: 0.4rem; 
+  cursor: pointer;
+  transition: all 0.2s; 
+  color: #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.btn-icon :deep(svg) {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.btn-icon:hover { 
+  background: rgba(59, 130, 246, 0.8); 
+  border-color: #60a5fa; 
+  color: white; 
+}
+.btn-icon.danger:hover { 
+  background: rgba(239, 68, 68, 0.9); 
+  border-color: #ef4444; 
+}
+
+/* ===== Drop zone ===== */
 .upload-area {
   margin-bottom: 1.5rem;
 }
@@ -653,16 +775,6 @@ onMounted(() => {
   gap: 0.75rem;
 }
 
-.drop-icon {
-  color: #60a5fa;
-  transition: transform 0.3s ease;
-}
-
-.drop-zone-active .drop-icon {
-  transform: scale(1.1);
-  color: #93c5fd;
-}
-
 .drop-text {
   font-size: 1.1rem;
   color: #e0e7ff;
@@ -687,7 +799,6 @@ onMounted(() => {
   padding: 1.5rem;
   text-align: center;
   background: rgba(11, 17, 32, 0.6);
-  position: relative;
 }
 
 .preview-image {
@@ -721,6 +832,9 @@ onMounted(() => {
   cursor: pointer;
   font-size: 0.9rem;
   transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .btn-remove:hover {
@@ -732,7 +846,15 @@ onMounted(() => {
   display: none;
 }
 
-/* Прогресс-бар */
+.hint {
+  display: block;
+  margin-top: 0.75rem;
+  color: #64748b;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* ===== Прогресс-бар ===== */
 .upload-progress {
   margin: 1.25rem 0;
   display: flex;
@@ -765,145 +887,7 @@ onMounted(() => {
   text-align: right;
 }
 
-.page { max-width: 1400px; margin: 0 auto; }
-.page-header { 
-  display: flex; justify-content: space-between; align-items: center; 
-  margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
-}
-.page-subtitle { color: #94a3b8; margin: 0.25rem 0 0; }
-
-.controls-bar {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 1.5rem; padding: 0.75rem 1rem;
-  background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px; flex-wrap: wrap; gap: 1rem;
-}
-.page-control { display: flex; align-items: center; gap: 0.5rem; }
-.page-info, .total-count { color: #94a3b8; font-size: 0.9rem; }
-
-/* Drop zone */
-.drop-zone {
-  border: 2px dashed rgba(59, 130, 246, 0.4);
-  border-radius: 12px;
-  padding: 2rem;
-  text-align: center;
-  transition: all 0.3s ease;
-  background: rgba(11, 17, 32, 0.6);
-  margin-bottom: 1.5rem;
-  position: relative;
-  cursor: pointer;
-}
-
-.drop-zone-active {
-  border-color: #60a5fa;
-  background: rgba(59, 130, 246, 0.1);
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
-}
-
-.drop-zone-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  pointer-events: none; /* чтобы клик проходил к input */
-}
-
-.drop-icon {
-  color: #94a3b8;
-}
-
-.drop-text {
-  font-size: 1rem;
-  color: #e0e7ff;
-  font-weight: 500;
-  margin: 0;
-}
-
-.drop-hint {
-  font-size: 0.85rem;
-  color: #64748b;
-  margin: 0;
-}
-
-.file-input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.file-input-hidden {
-  /* Когда файл уже выбран, можно визуально скрыть input, но оставить кликабельным */
-  opacity: 0;
-  position: absolute;
-  inset: 0;
-}
-
-.hint {
-  display: block;
-  margin-top: 0.5rem;
-  color: #64748b;
-  font-size: 0.8rem;
-}
-
-.upload-preview {
-  margin-top: 1rem;
-  text-align: center;
-}
-
-.upload-preview img {
-  max-width: 100%;
-  max-height: 200px;
-  border-radius: 8px;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.preview-name {
-  margin-top: 0.5rem;
-  font-size: 0.85rem;
-  color: #94a3b8;
-  word-break: break-all;
-}
-
-.btn-remove {
-  margin-top: 0.5rem;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.5);
-  color: #fca5a5;
-  padding: 0.3rem 0.8rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-.page { max-width: 1400px; margin: 0 auto; }
-.page-header { 
-  display: flex; justify-content: space-between; align-items: center; 
-  margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
-}
-.page-subtitle { color: #94a3b8; margin: 0.25rem 0 0; }
-
-.controls-bar {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 1.5rem; padding: 0.75rem 1rem;
-  background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px; flex-wrap: wrap; gap: 1rem;
-}
-.page-control { display: flex; align-items: center; gap: 0.5rem; }
-.page-info, .total-count { color: #94a3b8; font-size: 0.9rem; }
-
-.hint {
-  display: block;
-  margin-top: 0.75rem;
-  color: #64748b;
-  font-size: 0.85rem;
-  text-align: center;
-}
-
-.btn-remove:hover {
-  background: rgba(239, 68, 68, 0.2);
-}
-
-/* Галерея */
+/* ===== Галерея ===== */
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -947,7 +931,9 @@ onMounted(() => {
 }
 .assembly-badge {
   color: #93c5fd; background: rgba(59, 130, 246, 0.15);
-  padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem;
+  padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
 }
 .date { color: #64748b; }
 
@@ -957,21 +943,16 @@ onMounted(() => {
 }
 .gallery-item:hover .photo-actions { opacity: 1; }
 
-.btn-icon {
-  background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 6px; padding: 0.4rem 0.6rem; cursor: pointer;
-  transition: all 0.2s; font-size: 1rem; color: #cbd5e1;
-}
-.btn-icon:hover { background: rgba(59, 130, 246, 0.8); border-color: #60a5fa; color: white; }
-.btn-icon.danger:hover { background: rgba(239, 68, 68, 0.9); border-color: #ef4444; }
-
 .empty-gallery {
   grid-column: 1 / -1; text-align: center; padding: 4rem 2rem;
   color: #64748b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .empty-gallery p { margin-bottom: 1rem; }
 
-/* Модальные окна */
+/* ===== Модальные окна ===== */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.75);
   display: flex; align-items: center; justify-content: center;
@@ -991,7 +972,15 @@ onMounted(() => {
 }
 .modal-header h2 { margin: 0; font-size: 1.2rem; color: #e0e7ff; }
 .close-btn {
-  background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer;
+  background: none; border: none; color: #94a3b8; cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+}
+.close-btn :deep(svg) {
+  width: 20px !important;
+  height: 20px !important;
 }
 .close-btn:hover { color: #fff; }
 .modal-body { padding: 1.5rem; overflow-y: auto; flex: 1; }
@@ -1002,7 +991,7 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-/* Форма загрузки */
+/* ===== Форма ===== */
 .form-group { margin-bottom: 1.25rem; }
 .form-group label { display: block; margin-bottom: 0.4rem; color: #94a3b8; font-size: 0.9rem; }
 .form-group input, .form-group select, .form-group textarea {
@@ -1021,26 +1010,8 @@ onMounted(() => {
   background-size: 1.5em 1.5em;
   padding-right: 2.5rem;
 }
-.file-input {
-  padding: 0.4rem; background: #0b1120; border: 1px dashed rgba(59, 130, 246, 0.5);
-  border-radius: 6px; color: #94a3b8; cursor: pointer;
-}
-.file-input:hover { border-color: #60a5fa; }
-.hint { display: block; margin-top: 0.3rem; color: #64748b; font-size: 0.8rem; }
 
-.upload-preview {
-  margin: 1rem 0; text-align: center;
-}
-.upload-preview img {
-  max-width: 100%; max-height: 200px; border-radius: 8px;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-.preview-name {
-  margin-top: 0.5rem; font-size: 0.85rem; color: #94a3b8;
-  word-break: break-all;
-}
-
-/* Детали фото */
+/* ===== Детали фото ===== */
 .photo-detail-view {
   text-align: center; margin-bottom: 1.5rem;
   background: #0b1120; border-radius: 8px; padding: 1rem;
@@ -1084,38 +1055,7 @@ onMounted(() => {
 }
 .error-small { color: #fca5a5; }
 
-/* Прогресс-бар загрузки */
-.upload-progress {
-  margin: 1rem 0;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.progress-bar {
-  flex: 1;
-  height: 8px;
-  background: rgba(59, 130, 246, 0.15);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #2563eb, #60a5fa);
-  border-radius: 4px;
-  transition: width 0.3s ease;
-}
-
-.progress-text {
-  font-size: 0.9rem;
-  color: #93c5fd;
-  font-weight: 500;
-  min-width: 45px;
-  text-align: right;
-}
-
-/* Утилиты */
+/* ===== Кнопки ===== */
 .btn {
   position: relative; z-index: 1;
   display: inline-flex; align-items: center; gap: 0.5rem;
@@ -1124,13 +1064,19 @@ onMounted(() => {
   color: #93c5fd; cursor: pointer; transition: all 0.2s;
   font-weight: 500; font-size: 0.9rem; text-decoration: none;
 }
+.btn :deep(svg) {
+  width: 16px !important;
+  height: 16px !important;
+}
 .btn:hover { background: rgba(59, 130, 246, 0.25); border-color: #60a5fa; color: #bfdbfe; }
 .btn-primary { background: #2563eb; border-color: #2563eb; color: white; }
 .btn-primary:hover { background: #1d4ed8; box-shadow: 0 0 15px rgba(37, 99, 235, 0.4); }
+.btn-outline { background: transparent; border-color: rgba(59, 130, 246, 0.5); }
 .btn-danger { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.5); color: #fca5a5; }
 .btn-danger:hover { background: rgba(239, 68, 68, 0.25); border-color: #ef4444; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
+/* ===== Состояния загрузки ===== */
 .loading-state, .error-state {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 3rem; color: #94a3b8; gap: 1rem;

@@ -2,8 +2,13 @@
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal modal-xl">
       <div class="modal-header">
-        <h2>Добавить: {{ selectedType?.name }}</h2>
-        <button @click="$emit('close')" class="close-btn">×</button>
+        <h2>
+          <PlusCircle class="header-icon" />
+          Добавить: {{ selectedType?.name }}
+        </h2>
+        <button @click="$emit('close')" class="close-btn">
+          <X class="icon" />
+        </button>
       </div>
       
       <div class="modal-body">
@@ -33,8 +38,14 @@
             >
           </div>
           
-          <button @click="$emit('search')" class="btn btn-primary">🔍 Найти</button>
-          <button @click="$emit('reset')" class="btn btn-outline">Сбросить</button>
+          <button @click="$emit('search')" class="btn btn-primary">
+            <Search class="btn-icon" />
+            Найти
+          </button>
+          <button @click="$emit('reset')" class="btn btn-outline">
+            <RotateCcw class="btn-icon" />
+            Сбросить
+          </button>
         </div>
 
         <!-- Загрузка -->
@@ -66,33 +77,49 @@
             </div>
             
             <button @click="$emit('select', detail)" class="btn btn-primary btn-sm">
-              ✅ Выбрать
+              <CheckCircle class="btn-icon" />
+              Выбрать
             </button>
           </div>
         </div>
 
         <!-- Пагинация -->
         <div v-if="details.length > 0 && totalPages > 1" class="catalog-pagination">
-          <button @click="$emit('prev-page')" :disabled="currentPage === 0" class="btn-icon">←</button>
+          <button @click="$emit('prev-page')" :disabled="currentPage === 0" class="btn-icon">
+            <ChevronLeft class="icon" />
+          </button>
           <span>Стр. {{ currentPage + 1 }} из {{ totalPages }}</span>
           <button 
             @click="$emit('next-page')" 
             :disabled="currentPage >= totalPages - 1" 
             class="btn-icon"
           >
-            →
+            <ChevronRight class="icon" />
           </button>
         </div>
       </div>
       
       <div class="modal-footer">
-        <button type="button" @click="$emit('close')" class="btn">Закрыть</button>
+        <button type="button" @click="$emit('close')" class="btn">
+          <X class="btn-icon" />
+          Закрыть
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { 
+  PlusCircle, 
+  X, 
+  Search, 
+  RotateCcw, 
+  CheckCircle, 
+  ChevronLeft, 
+  ChevronRight 
+} from 'lucide-vue-next';
+
 const props = defineProps({
   selectedType: Object,
   details: Array,
@@ -113,74 +140,85 @@ const truncate = (text, length) => {
 </script>
 
 <style scoped>
-/* ===== Модальное окно ===== */
 .modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
+  position: fixed; 
+  inset: 0; 
+  background: rgba(0,0,0,0.7);
+  display: flex; 
+  align-items: center; 
   justify-content: center;
-  z-index: 1000;
+  z-index: 1000; 
   backdrop-filter: blur(4px);
 }
 
 .modal {
-  background: #111827;
+  background: #111827; 
   border: 1px solid rgba(59, 130, 246, 0.4);
-  border-radius: 12px;
-  width: 90%;
+  border-radius: 12px; 
+  width: 90%; 
   max-width: 500px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
   max-height: 90vh;
   display: flex;
   flex-direction: column;
 }
 
-.modal-xl {
-  max-width: 900px;
-  width: 95%;
+.modal-xl { 
+  max-width: 900px; 
+  width: 95%; 
 }
 
 .modal-header {
-  display: flex;
-  justify-content: space-between;
+  display: flex; 
+  justify-content: space-between; 
   align-items: center;
-  padding: 1.25rem 1.5rem;
+  padding: 1.25rem 1.5rem; 
   border-bottom: 1px solid rgba(59, 130, 246, 0.2);
   flex-shrink: 0;
 }
 
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.2rem;
+.modal-header h2 { 
+  margin: 0; 
+  font-size: 1.2rem; 
   color: #e0e7ff;
+  display: flex;
+  align-items: center;
+}
+
+.header-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 0.5rem;
 }
 
 .close-btn {
-  background: none;
-  border: none;
-  color: #94a3b8;
-  font-size: 1.5rem;
+  background: none; 
+  border: none; 
+  color: #94a3b8; 
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
 }
-
-.close-btn:hover {
-  color: #fff;
+.close-btn .icon {
+  width: 20px;
+  height: 20px;
 }
+.close-btn:hover { color: #fff; }
 
-.modal-body {
+.modal-body { 
   padding: 1.5rem;
   overflow-y: auto;
   flex: 1;
 }
 
 .modal-footer {
-  display: flex;
-  justify-content: flex-end;
+  display: flex; 
+  justify-content: flex-end; 
   gap: 0.75rem;
   padding: 1.25rem 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255,255,255,0.1);
   flex-shrink: 0;
 }
 
@@ -197,33 +235,33 @@ const truncate = (text, length) => {
   border-radius: 8px;
 }
 
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+.filter-group { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 0.4rem; 
 }
 
-.filter-group label {
-  font-size: 0.8rem;
+.filter-group label { 
+  font-size: 0.8rem; 
   color: #94a3b8;
   font-weight: 500;
 }
 
 .form-select,
 .form-input {
-  padding: 0.5rem 0.75rem;
-  background: #0b1120;
+  padding: 0.5rem 0.75rem; 
+  background: #0b1120; 
   border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 6px;
-  color: #e0e7ff;
+  border-radius: 6px; 
+  color: #e0e7ff; 
   font-size: 0.9rem;
   width: 100%;
 }
 
 .form-select:focus,
 .form-input:focus {
-  outline: none;
-  border-color: #60a5fa;
+  outline: none; 
+  border-color: #60a5fa; 
   box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
 }
 
@@ -239,21 +277,21 @@ const truncate = (text, length) => {
 
 /* ===== Каталог деталей ===== */
 .catalog-grid {
-  display: grid;
+  display: grid; 
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 1rem;
-  max-height: 400px;
-  overflow-y: auto;
+  gap: 1rem; 
+  max-height: 400px; 
+  overflow-y: auto; 
   padding-right: 0.5rem;
 }
 
 .catalog-card {
-  background: rgba(59, 130, 246, 0.05);
+  background: rgba(59, 130, 246, 0.05); 
   border: 1px solid rgba(59, 130, 246, 0.2);
-  border-radius: 8px;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
+  border-radius: 8px; 
+  padding: 1rem; 
+  display: flex; 
+  flex-direction: column; 
   gap: 0.75rem;
   transition: all 0.2s;
 }
@@ -263,55 +301,55 @@ const truncate = (text, length) => {
   background: rgba(59, 130, 246, 0.08);
 }
 
-.catalog-header {
-  display: flex;
-  justify-content: space-between;
+.catalog-header { 
+  display: flex; 
+  justify-content: space-between; 
   align-items: flex-start;
   gap: 0.5rem;
 }
 
-.catalog-header h4 {
-  margin: 0;
-  color: #e0e7ff;
-  font-size: 0.95rem;
+.catalog-header h4 { 
+  margin: 0; 
+  color: #e0e7ff; 
+  font-size: 0.95rem; 
 }
 
-.catalog-brand {
-  font-size: 0.75rem;
+.catalog-brand { 
+  font-size: 0.75rem; 
   color: #64748b;
   white-space: nowrap;
 }
 
-.catalog-desc {
-  margin: 0;
-  color: #cbd5e1;
-  font-size: 0.85rem;
-  line-height: 1.4;
+.catalog-desc { 
+  margin: 0; 
+  color: #cbd5e1; 
+  font-size: 0.85rem; 
+  line-height: 1.4; 
 }
 
-.catalog-attrs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
+.catalog-attrs { 
+  display: flex; 
+  flex-wrap: wrap; 
+  gap: 0.3rem; 
 }
 
 .attr-mini {
-  font-size: 0.75rem;
-  color: #94a3b8;
+  font-size: 0.75rem; 
+  color: #94a3b8; 
   background: rgba(59, 130, 246, 0.1);
-  padding: 0.2rem 0.4rem;
+  padding: 0.2rem 0.4rem; 
   border-radius: 3px;
 }
 
 /* ===== Пагинация ===== */
 .catalog-pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
   gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: 1.5rem; 
   padding: 1rem 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255,255,255,0.1);
 }
 
 .catalog-pagination .btn-icon {
@@ -323,6 +361,14 @@ const truncate = (text, length) => {
   border-radius: 8px;
   transition: all 0.2s;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.catalog-pagination .btn-icon .icon {
+  width: 18px;
+  height: 18px;
 }
 
 .catalog-pagination .btn-icon:hover:not(:disabled) {
@@ -349,28 +395,83 @@ const truncate = (text, length) => {
 }
 
 /* ===== Состояния ===== */
-.loading-state,
-.error-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.loading-state, .error-state {
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
   justify-content: center;
-  padding: 2rem;
-  color: #94a3b8;
+  padding: 1rem; 
+  color: #94a3b8; 
   gap: 1rem;
 }
 
 .spinner-small {
-  width: 24px;
-  height: 24px;
+  width: 24px; 
+  height: 24px; 
   border: 2px solid rgba(96, 165, 250, 0.2);
-  border-top-color: #60a5fa;
-  border-radius: 50%;
+  border-top-color: #60a5fa; 
+  border-radius: 50%; 
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@keyframes spin { 
+  to { transform: rotate(360deg); } 
+}
+
+/* ===== Кнопки ===== */
+.btn {
+  position: relative; 
+  z-index: 1;
+  display: inline-flex; 
+  align-items: center; 
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem; 
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  border-radius: 8px; 
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd; 
+  cursor: pointer; 
+  transition: all 0.2s;
+  font-weight: 500; 
+  font-size: 0.9rem; 
+  text-decoration: none;
+}
+
+.btn:hover { 
+  background: rgba(59, 130, 246, 0.25); 
+  border-color: #60a5fa; 
+  color: #bfdbfe; 
+}
+
+.btn-primary { 
+  background: #2563eb; 
+  border-color: #2563eb; 
+  color: white; 
+}
+
+.btn-primary:hover { 
+  background: #1d4ed8; 
+  box-shadow: 0 0 15px rgba(37, 99, 235, 0.4); 
+}
+
+.btn-outline { 
+  background: transparent; 
+  border-color: rgba(59, 130, 246, 0.5); 
+}
+
+.btn:disabled { 
+  opacity: 0.6; 
+  cursor: not-allowed; 
+}
+
+.btn-sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.btn-icon {
+  width: 16px;
+  height: 16px;
 }
 
 /* ===== Адаптив ===== */

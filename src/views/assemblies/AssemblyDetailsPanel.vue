@@ -1,8 +1,14 @@
 <template>
   <div class="section">
     <div class="section-header">
-      <h2>📋 Детали в сборке</h2>
-      <button @click="$emit('reload')" class="btn btn-outline btn-sm">🔄 Обновить</button>
+      <h2>
+        <Package class="section-icon" />
+        Детали в сборке
+      </h2>
+      <button @click="$emit('reload')" class="btn btn-outline btn-sm">
+        <RefreshCw class="btn-icon" />
+        Обновить
+      </button>
     </div>
 
     <!-- Загрузка -->
@@ -46,14 +52,14 @@
                   class="btn-icon" 
                   title="Редактировать"
                 >
-                  ✏️
+                  <Pencil class="icon" />
                 </button>
                 <button 
                   @click="$emit('remove-detail', item.id)" 
                   class="btn-icon danger" 
                   title="Удалить"
                 >
-                  🗑️
+                  <Trash2 class="icon" />
                 </button>
               </div>
             </div>
@@ -85,6 +91,8 @@
 </template>
 
 <script setup>
+import { Package, RefreshCw, Pencil, Trash2 } from 'lucide-vue-next';
+
 const props = defineProps({
   details: Array,
   loading: Boolean,
@@ -101,7 +109,18 @@ const emit = defineEmits(['reload', 'edit-detail', 'remove-detail']);
   display: flex; justify-content: space-between; align-items: center; 
   margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;
 }
-.section-header h2 { margin: 0; font-size: 1.3rem; color: #e0e7ff; }
+.section-header h2 { 
+  margin: 0; 
+  font-size: 1.3rem; 
+  color: #e0e7ff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.section-icon {
+  width: 20px;
+  height: 20px;
+}
 
 .card { 
   background: #111827; 
@@ -191,20 +210,40 @@ const emit = defineEmits(['reload', 'edit-detail', 'remove-detail']);
 .attr-more { font-size: 0.8rem; color: #64748b; }
 
 .btn-icon {
-  background: transparent; border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px; padding: 0.4rem 0.6rem; cursor: pointer;
-  transition: all 0.2s; font-size: 1rem;
+  background: transparent; 
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px; 
+  padding: 0.4rem; 
+  cursor: pointer;
+  transition: all 0.2s; 
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
-.btn-icon:hover { background: rgba(255,255,255,0.1); border-color: #60a5fa; }
-.btn-icon.danger:hover { background: rgba(239, 68, 68, 0.2); border-color: #ef4444; }
+.btn-icon .icon {
+  width: 16px;
+  height: 16px;
+}
+.btn-icon:hover { 
+  background: rgba(255,255,255,0.1); 
+  border-color: #60a5fa; 
+}
+.btn-icon.danger:hover { 
+  background: rgba(239, 68, 68, 0.2); 
+  border-color: #ef4444; 
+}
 
 .loading-state, .error-state {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 1rem; color: #94a3b8; gap: 1rem;
 }
 .spinner-small {
-  width: 24px; height: 24px; border: 2px solid rgba(96, 165, 250, 0.2);
-  border-top-color: #60a5fa; border-radius: 50%; animation: spin 1s linear infinite;
+  width: 24px; height: 24px; 
+  border: 2px solid rgba(96, 165, 250, 0.2);
+  border-top-color: #60a5fa; 
+  border-radius: 50%; 
+  animation: spin 1s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>

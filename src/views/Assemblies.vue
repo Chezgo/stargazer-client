@@ -1,10 +1,15 @@
 <template>
   <div class="page">
     <div class="page-header">
-      <h1>🔭 Мои сборки</h1>
-      <p class="page-subtitle">Управление конфигурациями телескопов</p>
+      <div class="header-content">
+        <h1>
+          <Telescope class="page-icon" />
+          Мои сборки
+        </h1>
+        <p class="page-subtitle">Управление конфигурациями телескопов</p>
+      </div>
       <button @click="openCreateModal" class="btn btn-primary">
-        <span>+</span> Создать сборку
+        Создать сборку
       </button>
     </div>
 
@@ -21,9 +26,13 @@
       </div>
       
       <div class="page-control">
-        <button @click="prevPage" :disabled="currentPage === 0" class="btn-icon">←</button>
+        <button @click="prevPage" :disabled="currentPage === 0" class="btn-icon">
+          <ChevronLeft class="icon" />
+        </button>
         <span class="page-info">Стр. {{ currentPage + 1 }} из {{ totalPages }}</span>
-        <button @click="nextPage" :disabled="currentPage >= totalPages - 1" class="btn-icon">→</button>
+        <button @click="nextPage" :disabled="currentPage >= totalPages - 1" class="btn-icon">
+          <ChevronRight class="icon" />
+        </button>
       </div>
     </div>
 
@@ -34,7 +43,8 @@
     </div>
     
     <div v-else-if="error" class="error-state">
-      <p>⚠️ {{ error }}</p>
+      <AlertTriangle class="error-icon" />
+      <p>{{ error }}</p>
       <button @click="fetchAssemblies" class="btn">Повторить</button>
     </div>
 
@@ -60,8 +70,14 @@
             <td class="fw-medium">{{ assembly.name }}</td>
             <td class="text-truncate">{{ assembly.description || '—' }}</td>
             <td @click.stop>
-              <button @click.stop="openEditModal(assembly)" class="btn-icon" title="Редактировать">✏️</button>
-              <button @click.stop="handleDelete(assembly.id)" class="btn-icon danger" title="Удалить">🗑️</button>
+              <div class="action-buttons">
+                <button @click.stop="openEditModal(assembly)" class="btn-icon" title="Редактировать">
+                  <Pencil class="icon" />
+                </button>
+                <button @click.stop="handleDelete(assembly.id)" class="btn-icon danger" title="Удалить">
+                  <Trash2 class="icon" />
+                </button>
+              </div>
             </td>
           </tr>
           <tr v-if="assemblies.length === 0">
@@ -76,7 +92,9 @@
       <div class="modal">
         <div class="modal-header">
           <h2>{{ editingId ? 'Редактировать' : 'Создать' }} сборку</h2>
-          <button @click="closeModal" class="close-btn">×</button>
+          <button @click="closeModal" class="close-btn">
+            <X class="icon" />
+          </button>
         </div>
         
         <form @submit.prevent="submitForm" class="modal-body">
@@ -106,6 +124,15 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import userAssembliesApi from '@/services/userAssemblies';
+import { 
+  Telescope, 
+  ChevronLeft, 
+  ChevronRight, 
+  AlertTriangle, 
+  Pencil, 
+  Trash2, 
+  X 
+} from 'lucide-vue-next';
 
 const router = useRouter();
 const assemblies = ref([]);
@@ -217,9 +244,94 @@ onMounted(fetchAssemblies);
 </script>
 
 <style scoped>
+/* ===== Иконки Lucide ===== */
+:deep(svg.lucide) {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.page-icon {
+  width: 28px !important;
+  height: 28px !important;
+  color: #60a5fa;
+}
+
+.error-icon {
+  width: 24px !important;
+  height: 24px !important;
+  color: #fca5a5;
+  margin-right: 0.5rem;
+}
+
+.btn-icon {
+  background: transparent; 
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px; 
+  padding: 0.4rem; 
+  cursor: pointer;
+  transition: all 0.2s; 
+  color: #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.btn-icon :deep(svg) {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.btn-icon:hover { 
+  background: rgba(255,255,255,0.1); 
+  border-color: #60a5fa; 
+}
+.btn-icon.danger:hover { 
+  background: rgba(239, 68, 68, 0.2); 
+  border-color: #ef4444; 
+}
+
+.close-btn :deep(svg) {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.btn :deep(svg) {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* ===== Базовые стили ===== */
 .page { max-width: 1200px; margin: 0 auto; }
-.page-header { margin-bottom: 2rem; }
-.page-subtitle { color: #94a3b8; margin: 0.25rem 0 1rem; }
+
+.page-header { 
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.page-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.page-subtitle { 
+  color: #94a3b8; 
+  margin: 0;
+  font-size: 0.95rem;
+}
 
 .controls-bar {
   display: flex; justify-content: space-between; align-items: center;
@@ -253,14 +365,11 @@ onMounted(fetchAssemblies);
   max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-.actions { display: flex; gap: 0.5rem; }
-.btn-icon {
-  background: transparent; border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px; padding: 0.4rem 0.6rem; cursor: pointer;
-  transition: all 0.2s; font-size: 1rem;
+/* ===== Кнопки действий ===== */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
 }
-.btn-icon:hover { background: rgba(255,255,255,0.1); border-color: #60a5fa; }
-.btn-icon.danger:hover { background: rgba(239, 68, 68, 0.2); border-color: #ef4444; }
 
 .empty-state { text-align: center; color: #64748b; padding: 2rem !important; }
 
@@ -281,7 +390,11 @@ onMounted(fetchAssemblies);
 }
 .modal-header h2 { margin: 0; font-size: 1.2rem; color: #e0e7ff; }
 .close-btn {
-  background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer;
+  background: none; border: none; color: #94a3b8; cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
 }
 .close-btn:hover { color: #fff; }
 .modal-body { padding: 1.5rem; }
@@ -310,4 +423,21 @@ onMounted(fetchAssemblies);
   border-top-color: #60a5fa; border-radius: 50%; animation: spin 1s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== Адаптив ===== */
+@media (max-width: 640px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .header-content {
+    width: 100%;
+  }
+  
+  .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+}
 </style>

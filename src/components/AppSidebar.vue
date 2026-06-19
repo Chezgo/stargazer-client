@@ -2,22 +2,22 @@
   <aside class="sidebar">
     <nav class="nav">
       <router-link to="/profile" class="nav-item" active-class="active">
-        <span class="icon">👤</span>
+        <User class="icon" />
         <span class="text">Профиль</span>
       </router-link>
       
       <router-link to="/assemblies" class="nav-item" active-class="active">
-        <span class="icon">🔭</span>
-        <span class="text">Мои сборки</span>  <!-- ← Переименовали -->
+        <Telescope class="icon" />
+        <span class="text">Мои сборки</span>
       </router-link>
       
       <router-link to="/my-observations" class="nav-item" active-class="active">
-        <span class="icon">📸</span>
+        <Camera class="icon" />
         <span class="text">Мои наблюдения</span>
       </router-link>
       
       <router-link to="/feed" class="nav-item" active-class="active">
-        <span class="icon">🌟</span>
+        <Star class="icon" />
         <span class="text">Лента наблюдений</span>
       </router-link>
     </nav>
@@ -25,9 +25,15 @@
 </template>
 
 <script setup>
+import { User, Telescope, Camera, Star } from 'lucide-vue-next';
 </script>
 
 <style scoped>
+.icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
 .sidebar {
   width: 260px;
   background: #111827;
