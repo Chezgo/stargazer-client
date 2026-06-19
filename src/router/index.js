@@ -23,7 +23,7 @@ const routes = [
   {
     path: '/assemblies/:id',
     name: 'AssemblyDetail',
-    component: () => import('@/views/AssemblyDetail.vue'),
+    component: () => import('@/views/assemblies/AssemblyDetail.vue'),
     meta: { title: 'Сборка', requiresAuth: true },
     props: true
   },
