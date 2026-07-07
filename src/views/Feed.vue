@@ -1,12 +1,12 @@
 <template>
-  <div class="page">
+  <div class="page" data-testid="page-feed">
     <div class="page-header">
       <h1>🌟 Лента наблюдений</h1>
       <p class="page-subtitle">Фотографии всех пользователей</p>
     </div>
     
     <div class="card">
-      <div class="empty-state">
+      <div class="empty-state" data-testid="feed-empty">
         <p>📭 Здесь будет лента наблюдений</p>
         <p class="hint">Раздел в разработке</p>
       </div>

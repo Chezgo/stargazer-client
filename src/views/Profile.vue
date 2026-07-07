@@ -1,13 +1,13 @@
 <template>
-  <div class="profile-page">
+  <div class="profile-page" data-testid="page-profile">
     <!-- Загрузка профиля -->
-    <div v-if="authStore.isProfileLoading" class="loading-profile">
+    <div v-if="authStore.isProfileLoading" class="loading-profile" data-testid="profile-loading">
       <div class="spinner"></div>
       <p>Загрузка профиля...</p>
     </div>
 
     <!-- Профиль загружен -->
-    <div v-else-if="authStore.userProfile" class="profile-content">
+    <div v-else-if="authStore.userProfile" class="profile-content" data-testid="profile-content">
       <div class="page-header">
         <h1>
           <User class="page-icon" />
@@ -18,12 +18,12 @@
 
       <div class="card">
         <div class="profile-header">
-          <div class="avatar">
+          <div class="avatar" data-testid="profile-avatar">
             {{ avatarLetter }}
           </div>
           <div class="user-info">
-            <h2>{{ authStore.userProfile.name || authStore.getUsername }}</h2>
-            <p class="email">{{ authStore.userInfo?.email }}</p>
+            <h2 data-testid="profile-display-name">{{ authStore.userProfile.name || authStore.getUsername }}</h2>
+            <p class="email" data-testid="profile-email">{{ authStore.userInfo?.email }}</p>
           </div>
         </div>
 
@@ -66,7 +66,7 @@
     </div>
 
     <!-- Ошибка загрузки -->
-    <div v-else-if="profileError" class="error-state">
+    <div v-else-if="profileError" class="error-state" data-testid="profile-error">
       <div class="card">
         <h2>
           <AlertTriangle class="error-icon" />

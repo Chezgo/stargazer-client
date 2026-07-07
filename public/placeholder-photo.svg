@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480" role="img" aria-labelledby="title desc">
+  <title id="title">Photo placeholder</title>
+  <desc id="desc">A simple night sky placeholder for unavailable astrophotography preview.</desc>
+  <rect width="640" height="480" fill="#0b1120"/>
+  <circle cx="122" cy="86" r="2" fill="#e0e7ff"/>
+  <circle cx="224" cy="142" r="1.5" fill="#bfdbfe"/>
+  <circle cx="386" cy="78" r="2" fill="#f8fafc"/>
+  <circle cx="504" cy="156" r="1.5" fill="#93c5fd"/>
+  <circle cx="566" cy="62" r="1" fill="#e0e7ff"/>
+  <circle cx="476" cy="262" r="52" fill="none" stroke="#2563eb" stroke-width="10" opacity="0.8"/>
+  <path d="M128 350l88-112 72 82 48-54 92 84H128z" fill="#1e3a8a"/>
+  <path d="M128 350h384v34H128z" fill="#172554"/>
+  <text x="320" y="424" text-anchor="middle" fill="#93c5fd" font-family="Arial, sans-serif" font-size="22">Preview unavailable</text>
+</svg>

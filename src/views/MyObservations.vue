@@ -1,12 +1,12 @@
 <template>
-  <div class="page">
+  <div class="page" data-testid="page-observations">
     <div class="page-header">
       <h1>
         <Camera class="page-icon" />
         Мои наблюдения
       </h1>
       <p class="page-subtitle">Твои астрофотографии</p>
-      <button @click="openUploadModal" class="btn btn-primary">
+      <button @click="openUploadModal" class="btn btn-primary" data-testid="btn-open-upload-photo">
         <Upload class="btn-icon" />
         Загрузить фото
       </button>
@@ -44,6 +44,8 @@
         v-for="photo in photos" 
         :key="photo.idPhoto"
         class="gallery-item"
+        data-testid="photo-card"
+        :data-photo-id="photo.idPhoto"
         @click="openPhotoDetail(photo)"
       >
         <div class="photo-preview">
@@ -133,7 +135,8 @@
               type="file" 
               @change="handleFileSelect" 
               accept="image/*"
-              class="hidden-file-input"
+            class="hidden-file-input"
+            data-testid="input-photo-file"
               style="display: none;"
             >
           </div>
@@ -394,8 +397,9 @@ const clearSelectedFile = () => {
   selectedFile.value = null;
   uploadPreview.value = null;
   uploadError.value = null;
-  const fileInput = document.querySelector('.file-input');
-  if (fileInput) fileInput.value = '';
+  if (fileInputRef.value) {
+    fileInputRef.value.value = '';
+  }
 };
 
 // Загрузка данных

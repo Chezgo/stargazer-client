@@ -1,11 +1,11 @@
 <template>
-  <div class="section">
+  <div class="section" data-testid="add-detail-panel">
     <div class="section-header">
       <h2>
         <Wrench class="section-icon" />
         Добавить деталь
       </h2>
-      <button @click="$emit('toggle-all')" class="btn btn-outline btn-sm">
+      <button @click="$emit('toggle-all')" class="btn btn-outline btn-sm" data-testid="btn-toggle-all-detail-groups">
         <component :is="allExpanded ? Minus : Plus" class="btn-icon" />
         {{ allExpanded ? 'Свернуть' : 'Развернуть' }}
       </button>
@@ -29,8 +29,10 @@
         v-for="(types, groupName) in types" 
         :key="groupName" 
         class="group-card"
+        data-testid="detail-type-group"
+        :data-group-name="groupName"
       >
-        <button @click="$emit('toggle-group', groupName)" class="group-header">
+        <button @click="$emit('toggle-group', groupName)" class="group-header" data-testid="btn-toggle-detail-group">
           <span class="group-name">{{ groupName }}</span>
           <span class="group-toggle">
             <component :is="expandedGroups[groupName] ? Minus : Plus" class="toggle-icon" />
@@ -49,6 +51,9 @@
               }]"
               :disabled="!hasGoal ? false : !type.isCompatible"
               :title="getTypeTitle(type)"
+              data-testid="detail-type-button"
+              :data-detail-type-id="type.id"
+              :data-compatible="!hasGoal || type.isCompatible"
             >
               <component :is="getTypeIconComponent(type)" class="type-icon" />
               <span class="type-name">{{ type.name }}</span>

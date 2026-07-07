@@ -1,0 +1,10 @@
+node_modules
+.npm-cache
+dist
+.git
+.agents
+.codex
+.env
+.env.*
+npm-debug.log*
+REVIEW_FIX_PLAN.md

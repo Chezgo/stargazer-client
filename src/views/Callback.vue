@@ -1,6 +1,6 @@
 <template>
-  <div class="callback-container">
-    <div class="spinner"></div>
+  <div class="callback-container" data-testid="page-callback">
+    <div class="spinner" data-testid="callback-spinner"></div>
     <p>Завершение авторизации...</p>
   </div>
 </template>

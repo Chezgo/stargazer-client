@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div class="page" data-testid="page-assemblies">
     <div class="page-header">
       <div class="header-content">
         <h1>
@@ -8,7 +8,7 @@
         </h1>
         <p class="page-subtitle">Управление конфигурациями телескопов</p>
       </div>
-      <button @click="openCreateModal" class="btn btn-primary">
+      <button @click="openCreateModal" class="btn btn-primary" data-testid="btn-create-assembly">
         Создать сборку
       </button>
     </div>
@@ -17,7 +17,7 @@
     <div class="controls-bar">
       <div class="sort-control">
         <label>Сортировка:</label>
-        <select v-model="sortBy" @change="fetchAssemblies">
+        <select v-model="sortBy" @change="fetchAssemblies" data-testid="select-assemblies-sort">
           <option value="name,asc">Название (А-Я)</option>
           <option value="name,desc">Название (Я-А)</option>
           <option value="id,asc">ID (по возрастанию)</option>
@@ -65,6 +65,8 @@
             :key="assembly.id"
             @click="goToDetail(assembly.id)"
             class="clickable-row"
+            data-testid="assembly-row"
+            :data-assembly-id="assembly.id"
           >
             <td>#{{ assembly.id }}</td>
             <td class="fw-medium">{{ assembly.name }}</td>
@@ -89,7 +91,7 @@
 
     <!-- Модальное окно: Создание/Редактирование -->
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-      <div class="modal">
+      <div class="modal" data-testid="assembly-modal">
         <div class="modal-header">
           <h2>{{ editingId ? 'Редактировать' : 'Создать' }} сборку</h2>
           <button @click="closeModal" class="close-btn">

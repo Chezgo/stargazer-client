@@ -1,22 +1,22 @@
 <template>
-  <aside class="sidebar">
+  <aside class="sidebar" data-testid="app-sidebar">
     <nav class="nav">
-      <router-link to="/profile" class="nav-item" active-class="active">
+      <router-link to="/profile" class="nav-item" active-class="active" data-testid="nav-profile">
         <User class="icon" />
         <span class="text">Профиль</span>
       </router-link>
       
-      <router-link to="/assemblies" class="nav-item" active-class="active">
+      <router-link to="/assemblies" class="nav-item" active-class="active" data-testid="nav-assemblies">
         <Telescope class="icon" />
         <span class="text">Мои сборки</span>
       </router-link>
       
-      <router-link to="/my-observations" class="nav-item" active-class="active">
+      <router-link to="/my-observations" class="nav-item" active-class="active" data-testid="nav-observations">
         <Camera class="icon" />
         <span class="text">Мои наблюдения</span>
       </router-link>
       
-      <router-link to="/feed" class="nav-item" active-class="active">
+      <router-link to="/feed" class="nav-item" active-class="active" data-testid="nav-feed">
         <Star class="icon" />
         <span class="text">Лента наблюдений</span>
       </router-link>

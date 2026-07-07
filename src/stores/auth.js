@@ -1,5 +1,12 @@
 import { defineStore } from 'pinia';
 import userProfileApi from '@/services/userProfile';
+import { appConfig } from '@/config/appConfig';
+import { logger } from '@/utils/logger';
+
+const toBase64Url = (bytes) => btoa(String.fromCharCode.apply(null, bytes))
+  .replace(/\+/g, '-')
+  .replace(/\//g, '_')
+  .replace(/=+$/, '');
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -16,74 +23,70 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   getters: {
-    getUsername: (state) => state.userInfo?.preferred_username || state.userInfo?.given_name || state.userInfo?.email?.split('@')[0] || 'Гость'
+    getUsername: (state) => state.userInfo?.preferred_username
+      || state.userInfo?.given_name
+      || state.userInfo?.email?.split('@')[0]
+      || 'Гость',
+    getDisplayName: (state) => state.userInfo?.preferred_username
+      || state.userInfo?.given_name
+      || state.userInfo?.email?.split('@')[0]
+      || 'Гость'
   },
 
   actions: {
     async login() {
       if (this.isRedirecting) return;
       this.isRedirecting = true;
-      
-      console.log('🔐 Starting login with PKCE');
-      sessionStorage.removeItem('oauth_state');
-      sessionStorage.removeItem('oauth_nonce');
-      sessionStorage.removeItem('oauth_code_verifier');
+
+      logger.debug('Starting login with PKCE');
+      this.clearOAuthKeys();
 
       const codeVerifier = this.generateCodeVerifier();
       const codeChallenge = await this.generateCodeChallenge(codeVerifier);
-      sessionStorage.setItem('oauth_code_verifier', codeVerifier);
-
-      const clientId = import.meta.env.VITE_KEYCLOAK_CLIENT_ID;
-      const redirectUri = encodeURIComponent(`${window.location.origin}/callback`);
-      const scope = 'openid profile email offline_access';
       const state = this.generateState();
       const nonce = this.generateNonce();
 
+      sessionStorage.setItem('oauth_code_verifier', codeVerifier);
       sessionStorage.setItem('oauth_state', state);
       sessionStorage.setItem('oauth_nonce', nonce);
 
-      const authUrl = `${import.meta.env.VITE_KEYCLOAK_URL}/realms/${import.meta.env.VITE_KEYCLOAK_REALM}/protocol/openid-connect/auth?` +
-        `client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}` +
-        `&state=${state}&nonce=${nonce}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+      const clientId = appConfig.keycloakClientId;
+      const redirectUri = encodeURIComponent(`${window.location.origin}/callback`);
+      const scope = 'openid profile email offline_access';
 
-      console.log('➡️ Redirecting to Keycloak');
+      const authUrl = `${appConfig.keycloakUrl}/realms/${appConfig.keycloakRealm}/protocol/openid-connect/auth?`
+        + `client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`
+        + `&state=${state}&nonce=${nonce}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+
       window.location.href = authUrl;
     },
 
     async handleCallback() {
-      console.log('🔄 handleCallback: STARTED');
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
       const state = urlParams.get('state');
       const error = urlParams.get('error');
-
       const savedState = sessionStorage.getItem('oauth_state');
       const codeVerifier = sessionStorage.getItem('oauth_code_verifier');
 
-      console.log('🔍 Debug:', {
-        codePresent: !!code,
-        stateUrl: state?.substring(0, 15),
-        stateSaved: savedState?.substring(0, 15),
-        match: state === savedState,
-        verifier: !!codeVerifier
+      logger.debug('OAuth callback state', {
+        codePresent: Boolean(code),
+        stateMatches: Boolean(state && savedState && state === savedState),
+        verifierPresent: Boolean(codeVerifier)
       });
 
-      sessionStorage.removeItem('oauth_state');
-      sessionStorage.removeItem('oauth_nonce');
-      sessionStorage.removeItem('oauth_code_verifier');
-      window.history.replaceState({}, '', '/');
-
-      if (error) throw new Error(`OAuth error: ${error} - ${urlParams.get('error_description')}`);
-      if (!code) throw new Error('No authorization code in URL');
-      
-      if (state !== savedState) {
-        console.warn('⚠️ State mismatch detected. Likely race condition. Proceeding carefully...');
-      }
-      
-      if (!codeVerifier) throw new Error('No code_verifier found');
-
       try {
-        const res = await fetch(`${import.meta.env.VITE_AUTH_API_URL}/auth/callback`, {
+        if (error) {
+          throw new Error(`OAuth error: ${error} - ${urlParams.get('error_description') || ''}`);
+        }
+        if (!code) throw new Error('No authorization code in URL');
+        if (!state || !savedState || state !== savedState) throw new Error('Invalid OAuth state');
+        if (!codeVerifier) throw new Error('No code_verifier found');
+
+        this.clearOAuthKeys();
+        window.history.replaceState({}, '', '/');
+
+        const res = await fetch(`${appConfig.authApiUrl}/auth/callback`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code, codeVerifier, redirectUri: `${window.location.origin}/callback` })
@@ -94,8 +97,6 @@ export const useAuthStore = defineStore('auth', {
         if (!data.expires_in || typeof data.expires_in !== 'number') throw new Error('Invalid expires_in');
 
         this.expiresAt = Date.now() + data.expires_in * 1000;
-        sessionStorage.setItem('expires_at', this.expiresAt.toString());
-
         this.token = data.access_token;
         this.refreshToken = data.refresh_token;
         this.userInfo = data.userInfo;
@@ -104,12 +105,14 @@ export const useAuthStore = defineStore('auth', {
 
         sessionStorage.setItem('access_token', data.access_token);
         sessionStorage.setItem('refresh_token', data.refresh_token);
+        sessionStorage.setItem('expires_at', this.expiresAt.toString());
         sessionStorage.setItem('user_info', JSON.stringify(data.userInfo));
 
-        console.log('✅ Auth successful');
         this.startSilentRefresh();
       } catch (err) {
-        console.error('❌ Auth exchange failed:', err);
+        this.clearOAuthKeys();
+        window.history.replaceState({}, '', '/');
+        logger.error('Auth callback failed:', err);
         this.clear();
         throw err;
       }
@@ -117,7 +120,10 @@ export const useAuthStore = defineStore('auth', {
 
     async ensureValidToken() {
       if (this.token && this.expiresAt && Date.now() < this.expiresAt - 5000) return this.token;
-      if (this.refreshToken) { await this.refreshTokens(); return this.token; }
+      if (this.refreshToken) {
+        await this.refreshTokens();
+        return this.token;
+      }
       this.authenticated = false;
       throw new Error('Session expired');
     },
@@ -125,7 +131,7 @@ export const useAuthStore = defineStore('auth', {
     async refreshTokens() {
       if (!this.refreshToken) throw new Error('No refresh token');
       try {
-        const res = await fetch(`${import.meta.env.VITE_AUTH_API_URL}/auth/refresh`, {
+        const res = await fetch(`${appConfig.authApiUrl}/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken: this.refreshToken })
@@ -142,9 +148,9 @@ export const useAuthStore = defineStore('auth', {
         sessionStorage.setItem('refresh_token', data.refresh_token);
         sessionStorage.setItem('expires_at', this.expiresAt.toString());
         sessionStorage.setItem('user_info', JSON.stringify(data.userInfo));
-        console.log('🔄 Token refreshed');
+        logger.debug('Token refreshed');
       } catch (err) {
-        console.error('❌ Refresh failed:', err);
+        logger.error('Refresh failed:', err);
         this.clear();
         throw err;
       }
@@ -160,27 +166,25 @@ export const useAuthStore = defineStore('auth', {
 
         if (t && rt && exp) {
           const expiresAt = parseInt(exp, 10);
-          if (!isNaN(expiresAt)) {
-            this.token = t; this.refreshToken = rt; this.expiresAt = expiresAt;
+          if (!Number.isNaN(expiresAt)) {
+            this.token = t;
+            this.refreshToken = rt;
+            this.expiresAt = expiresAt;
             if (ui) this.userInfo = JSON.parse(ui);
 
             if (Date.now() < expiresAt - 5000) {
               this.authenticated = true;
-              console.log('✅ Session restored');
             } else {
               await this.refreshTokens();
               this.authenticated = true;
             }
           }
-        } else {
-          console.log('ℹ️ No session data found');
         }
       } catch (err) {
-        console.error('❌ initAuth error:', err);
+        logger.error('initAuth error:', err);
         this.clear();
       } finally {
         this.isInitialized = true;
-        console.log('🏁 Auth initialized');
       }
     },
 
@@ -188,14 +192,28 @@ export const useAuthStore = defineStore('auth', {
       if (this.refreshTimer) clearTimeout(this.refreshTimer);
       const delay = this.expiresAt - Date.now() - 30000;
       this.refreshTimer = setTimeout(async () => {
-        try { await this.refreshTokens(); this.startSilentRefresh(); }
-        catch { this.logout(); }
+        try {
+          await this.refreshTokens();
+          this.startSilentRefresh();
+        } catch {
+          this.logout();
+        }
       }, Math.max(delay, 1000));
     },
 
+    clearOAuthKeys() {
+      sessionStorage.removeItem('oauth_state');
+      sessionStorage.removeItem('oauth_nonce');
+      sessionStorage.removeItem('oauth_code_verifier');
+    },
+
     clear() {
-      this.authenticated = false; this.token = null; this.refreshToken = null;
-      this.userInfo = null; this.expiresAt = null; this.isRedirecting = false;
+      this.authenticated = false;
+      this.token = null;
+      this.refreshToken = null;
+      this.userInfo = null;
+      this.expiresAt = null;
+      this.isRedirecting = false;
       if (this.refreshTimer) clearTimeout(this.refreshTimer);
       sessionStorage.removeItem('access_token');
       sessionStorage.removeItem('refresh_token');
@@ -205,24 +223,19 @@ export const useAuthStore = defineStore('auth', {
 
     async loadOrCreateProfile() {
       if (this.isProfileLoading || this.userProfile) return;
-      
+
       this.isProfileLoading = true;
-      
+
       try {
-        console.log('📥 Loading user profile...');
         const result = await userProfileApi.getProfile();
-        
+
         if (result.success) {
-          console.log('✅ Profile loaded:', result.data);
           this.userProfile = result.data;
         } else if (result.error === 'NOT_FOUND') {
-          console.log('⚠️ Profile not found, creating...');
-          const newProfile = await userProfileApi.createProfile();
-          console.log('✅ Profile created:', newProfile);
-          this.userProfile = newProfile;
+          this.userProfile = await userProfileApi.createProfile();
         }
       } catch (err) {
-        console.error('❌ Failed to load/create profile:', err);
+        logger.error('Failed to load/create profile:', err);
         throw err;
       } finally {
         this.isProfileLoading = false;
@@ -231,27 +244,30 @@ export const useAuthStore = defineStore('auth', {
 
     logout() {
       this.clear();
-      
-      const clientId = import.meta.env.VITE_KEYCLOAK_CLIENT_ID;
+
+      const clientId = appConfig.keycloakClientId;
       const postLogoutRedirectUri = encodeURIComponent(`${window.location.origin}`);
-      
-      const logoutUrl = `${import.meta.env.VITE_KEYCLOAK_URL}/realms/${import.meta.env.VITE_KEYCLOAK_REALM}/protocol/openid-connect/logout?` +
-        `client_id=${clientId}` +
-        `&post_logout_redirect_uri=${postLogoutRedirectUri}`;
-      
-      console.log('🚪 Logging out, redirecting to:', logoutUrl);
+
+      const logoutUrl = `${appConfig.keycloakUrl}/realms/${appConfig.keycloakRealm}/protocol/openid-connect/logout?`
+        + `client_id=${clientId}`
+        + `&post_logout_redirect_uri=${postLogoutRedirectUri}`;
+
       window.location.href = logoutUrl;
     },
 
-    generateState() { return Math.random().toString(36).substring(2) + Date.now().toString(36); },
-    generateNonce() { return Math.random().toString(36).substring(2) + Date.now().toString(36); },
-    generateCodeVerifier() {
-      const arr = new Uint8Array(32); crypto.getRandomValues(arr);
-      return btoa(String.fromCharCode.apply(null, arr)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    generateRandomBase64Url(length = 32) {
+      const arr = new Uint8Array(length);
+      crypto.getRandomValues(arr);
+      return toBase64Url(arr);
     },
+
+    generateState() { return this.generateRandomBase64Url(32); },
+    generateNonce() { return this.generateRandomBase64Url(32); },
+    generateCodeVerifier() { return this.generateRandomBase64Url(64); },
+
     async generateCodeChallenge(verifier) {
-      const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-      return btoa(String.fromCharCode.apply(null, new Uint8Array(d))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+      return toBase64Url(new Uint8Array(digest));
     }
   }
 });

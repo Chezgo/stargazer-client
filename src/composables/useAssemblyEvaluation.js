@@ -3,7 +3,7 @@ import assemblyEvaluationApi from '@/services/assemblyEvaluation';
 
 export function useAssemblyEvaluation(assemblyId) {
   const assemblyGoals = ref([]);
-  const selectedGoalId = ref('');
+  const selectedGoalId = ref(null);
   const evaluation = ref(null);
   const evaluationLoading = ref(false);
 
@@ -39,7 +39,7 @@ export function useAssemblyEvaluation(assemblyId) {
   };
 
   const loadEvaluation = async () => {
-    if (!selectedGoalId.value) {
+    if (selectedGoalId.value === null) {
       evaluation.value = null;
       return;
     }
@@ -58,15 +58,18 @@ export function useAssemblyEvaluation(assemblyId) {
     }
   };
 
-    watch(selectedGoalId, async (newGoalId) => {
-    if (newGoalId) {
+  const onGoalChange = async () => {
+    await loadEvaluation();
+  };
+
+  // Watch for changes
+  watch(selectedGoalId, async (newGoalId) => {
+    if (newGoalId !== null) {
       await loadEvaluation();
+    } else {
+      evaluation.value = null;
     }
   });
-
-  const onGoalChange = async () => {
-  await loadEvaluation();
-};
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -85,13 +88,6 @@ export function useAssemblyEvaluation(assemblyId) {
       default: return type;
     }
   };
-
-  watch(selectedGoalId, async (newGoalId, oldGoalId) => {
-    console.log('👀 Watch: selectedGoalId изменился с', oldGoalId, 'на', newGoalId);
-    if (newGoalId) {
-      await loadEvaluation();
-    }
-  });
 
   return {
     assemblyGoals,

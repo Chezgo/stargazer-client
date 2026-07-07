@@ -1,5 +1,5 @@
 <template>
-  <footer class="app-footer">
+  <footer class="app-footer" data-testid="app-footer">
     <div class="container">
       <p>🌌 Stargazer — твои наблюдения за космосом © 2026</p>
     </div>

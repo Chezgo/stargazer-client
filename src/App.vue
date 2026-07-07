@@ -1,15 +1,15 @@
 <template>
-  <div v-if="!authStore.isInitialized" class="loading-screen">
+  <div v-if="!authStore.isInitialized" class="loading-screen" data-testid="app-loading">
     <div class="spinner"></div>
     <p>Инициализация системы...</p>
   </div>
 
-  <div v-else-if="!authStore.authenticated && !isCallbackRoute" class="loading-screen">
+  <div v-else-if="!authStore.authenticated && !isCallbackRoute" class="loading-screen" data-testid="app-auth-redirect">
     <div class="spinner"></div>
     <p>Перенаправление на авторизацию...</p>
   </div>
 
-  <div v-else class="app-wrapper">
+  <div v-else class="app-wrapper" data-testid="app-root">
     <AppHeader />
     <div class="content-wrapper">
       <AppSidebar />

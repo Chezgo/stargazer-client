@@ -1,14 +1,14 @@
 <template>
-  <header class="app-header">
+  <header class="app-header" data-testid="app-header">
     <div class="container">
-      <router-link to="/profile" class="logo">
+      <router-link to="/profile" class="logo" data-testid="app-logo">
         <Telescope class="logo-icon" />
         <span>Stargazer</span>
       </router-link>
       
       <div class="user-menu">
-        <span class="username">{{ authStore.getDisplayName }}</span>
-        <button @click="authStore.logout" class="btn btn-outline">
+        <span class="username" data-testid="header-username">{{ authStore.getUsername }}</span>
+        <button @click="authStore.logout" class="btn btn-outline" data-testid="btn-logout">
           <LogOut class="btn-icon" />
           Выйти
         </button>

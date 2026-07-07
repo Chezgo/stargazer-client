@@ -1,5 +1,5 @@
 <template>
-  <div class="section goal-section">
+  <div class="section goal-section" data-testid="assembly-goals-panel">
     <div class="section-header">
       <h2>
         <Target class="section-icon" />
@@ -12,6 +12,7 @@
         :value="selectedGoalId"
         @change="onGoalChange"
         class="form-select goal-select"
+        data-testid="select-assembly-goal"
       >
         <option value="">Свободная сборка (без цели)</option>
         <option v-for="goal in assemblyGoals" :key="goal.id" :value="goal.id">
@@ -24,7 +25,7 @@
       </div>
     </div>
 
-    <div v-if="evaluation && selectedGoalId" class="evaluation-summary">
+    <div v-if="evaluation && selectedGoalId !== null" class="evaluation-summary" data-testid="assembly-evaluation-summary">
       <div class="evaluation-header">
         <h3>Оценка сборки</h3>
         <div :class="['score-badge', `score-${statusClass}`]">
@@ -61,7 +62,7 @@ import { computed } from 'vue';
 
 const props = defineProps({
   assemblyGoals: { type: Array, default: () => [] },
-  selectedGoalId: { type: String, default: '' },
+  selectedGoalId: { type: [String, Number], default: null },
   evaluation: { type: Object, default: null }
 });
 
@@ -90,7 +91,14 @@ const statusText = computed(() => {
 });
 
 const onGoalChange = (event) => {
-  emit('update:selectedGoalId', event.target.value);
+  const rawValue = event.target.value;
+  if (rawValue === '') {
+    emit('update:selectedGoalId', null);
+    return;
+  }
+
+  const numericValue = Number(rawValue);
+  emit('update:selectedGoalId', Number.isNaN(numericValue) ? rawValue : numericValue);
 };
 </script>
 
