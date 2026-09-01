@@ -8,9 +8,9 @@
       
       <div class="user-menu">
         <span class="username" data-testid="header-username">{{ authStore.getUsername }}</span>
-        <button @click="authStore.logout" class="btn btn-outline" data-testid="btn-logout">
+        <button @click="authStore.logout" class="btn btn-outline logout-button" data-testid="btn-logout" title="Выйти">
           <LogOut class="btn-icon" />
-          Выйти
+          <span>Выйти</span>
         </button>
       </div>
     </div>
@@ -19,7 +19,7 @@
 
 <script setup>
 import { useAuthStore } from '@/stores/auth';
-import { Telescope, Sparkles, LogOut } from 'lucide-vue-next';
+import { Telescope, LogOut } from 'lucide-vue-next';
 const authStore = useAuthStore();
 </script>
 
@@ -98,8 +98,10 @@ const authStore = useAuthStore();
 
 /* Адаптив */
 @media (max-width: 768px) {
-  .credits-badge {
-    display: none; /* Скрываем на мобильных, чтобы не загромождать */
-  }
+  .app-header { padding: .65rem 0; }
+  .container { padding: 0 1rem; }
+  .username { max-width: 38vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .logout-button { width: 40px; height: 40px; justify-content: center; padding: 0; }
+  .logout-button span { display: none; }
 }
 </style>

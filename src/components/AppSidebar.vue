@@ -76,4 +76,18 @@ import { User, Telescope, Camera, Star } from 'lucide-vue-next';
   font-size: 0.95rem;
   font-weight: 500;
 }
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed; z-index: 500; right: 0; bottom: 0; left: 0;
+    width: auto; padding: .35rem max(.35rem, env(safe-area-inset-right)) calc(.35rem + env(safe-area-inset-bottom)) max(.35rem, env(safe-area-inset-left));
+    border-top: 1px solid rgba(59,130,246,.35); border-right: 0;
+    box-shadow: 0 -8px 30px rgba(0,0,0,.35);
+  }
+  .nav { flex-direction: row; gap: .2rem; }
+  .nav-item { flex: 1; min-width: 0; flex-direction: column; gap: .15rem; padding: .4rem .15rem; border: 0; border-radius: 8px; text-align: center; }
+  .nav-item:hover, .nav-item.active { border: 0; }
+  .nav-item .icon { width: 21px; height: 21px; }
+  .text { max-width: 100%; font-size: .66rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
 </style>

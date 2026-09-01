@@ -30,6 +30,11 @@ export default {
     });
   },
 
+  async updatePhoto(photoId, data) {
+    const response = await api.patch(`/photos/${photoId}`, data);
+    return response.data;
+  },
+
   async deletePhoto(photoId) {
     await api.delete(`/photos/${photoId}`);
   },

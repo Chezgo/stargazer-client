@@ -298,6 +298,7 @@ onMounted(async () => {
 
 /* Адаптив */
 @media (max-width: 640px) {
+  .card { padding: 1.15rem; }
   .profile-header {
     flex-direction: column;
     text-align: center;
@@ -308,5 +309,6 @@ onMounted(async () => {
     align-items: flex-start;
     gap: 0.25rem;
   }
+  .links-grid { grid-template-columns: 1fr; }
 }
 </style>

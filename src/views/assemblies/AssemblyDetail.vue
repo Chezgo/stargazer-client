@@ -487,4 +487,17 @@ onMounted(async () => {
     width: 100%;
   }
 }
+@media (max-width: 640px) {
+  .page-header { align-items: flex-start; flex-direction: column; }
+  .card { padding: 1rem; }
+  .detail-row { flex-direction: column; gap: .25rem; }
+  .detail-row label { min-width: 0; }
+  .actions { flex-wrap: wrap; }
+  .actions .btn { flex: 1; justify-content: center; }
+  .modal-overlay { align-items: flex-end; }
+  .modal { width: 100%; max-height: 94dvh; border-radius: 14px 14px 0 0; }
+  .modal-header, .modal-body { padding-left: 1rem; padding-right: 1rem; }
+  .modal-footer { flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1; justify-content: center; }
+}
 </style>

@@ -154,6 +154,30 @@
             </select>
           </div>
 
+          <label class="publish-toggle">
+            <input v-model="uploadForm.publish" type="checkbox">
+            <span><strong>Опубликовать в ленте</strong><small>После загрузки фотография станет доступна сообществу</small></span>
+          </label>
+
+          <div v-if="uploadForm.publish" class="publish-fields">
+            <div class="form-group">
+              <label>Название публикации *</label>
+              <input v-model.trim="uploadForm.title" maxlength="200" required placeholder="Например, Туманность Ориона">
+            </div>
+            <div class="form-group">
+              <label>Описание</label>
+              <textarea v-model.trim="uploadForm.description" maxlength="2000" rows="3" placeholder="Расскажите о съёмке и обработке"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Видимость</label>
+              <select v-model="uploadForm.visibility" class="form-select">
+                <option value="PUBLIC">Для всех — появится в ленте</option>
+                <option value="UNLISTED">По ссылке — не появится в ленте</option>
+                <option value="PRIVATE">Только для меня</option>
+              </select>
+            </div>
+          </div>
+
           <!-- Прогресс-бар -->
           <div v-if="uploading" class="upload-progress">
             <div class="progress-bar">
@@ -290,7 +314,8 @@ const pageSize = ref(12);
 // Загрузка файла
 const selectedFile = ref(null);
 const uploadPreview = ref(null);
-const uploadForm = ref({ assemblyId: null });
+const emptyUploadForm = () => ({ assemblyId: null, publish: true, title: '', description: '', visibility: 'PUBLIC' });
+const uploadForm = ref(emptyUploadForm());
 
 // Детали фото
 const selectedPhoto = ref(null);
@@ -383,6 +408,7 @@ const processFile = (file) => {
   }
   
   selectedFile.value = file;
+  if (!uploadForm.value.title) uploadForm.value.title = file.name.replace(/\.[^.]+$/, '');
   
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -524,7 +550,7 @@ const closeUploadModal = () => {
   showUploadModal.value = false;
   selectedFile.value = null;
   uploadPreview.value = null;
-  uploadForm.value = { assemblyId: null };
+  uploadForm.value = emptyUploadForm();
   uploadProgress.value = 0;
   uploading.value = false;
   uploadError.value = null;
@@ -536,12 +562,17 @@ const submitUpload = async () => {
     return;
   }
 
+  if (uploadForm.value.publish && !uploadForm.value.title.trim()) {
+    toast.error('Для публикации укажите название', 'Не заполнено название');
+    return;
+  }
+
   uploading.value = true;
   uploadProgress.value = 0;
   uploadError.value = null;
 
   try {
-    await userPhotosApi.uploadPhoto(
+    const uploadResponse = await userPhotosApi.uploadPhoto(
       selectedFile.value,
       uploadForm.value.assemblyId,
       (progress) => {
@@ -549,9 +580,22 @@ const submitUpload = async () => {
       }
     );
 
+    const uploadedPhoto = uploadResponse.data || uploadResponse;
+    const photoId = uploadedPhoto.id ?? uploadedPhoto.idPhoto;
+    const shouldPublish = uploadForm.value.publish;
+    if (shouldPublish) {
+      if (!photoId) throw new Error('Сервис не вернул ID загруженной фотографии');
+      await userPhotosApi.updatePhoto(photoId, {
+        title: uploadForm.value.title.trim(),
+        description: uploadForm.value.description.trim() || null,
+        visibility: uploadForm.value.visibility,
+        isPublished: true
+      });
+    }
+
     closeUploadModal();
     fetchPhotos();
-    toast.success('Фотография успешно загружена!', 'Загрузка завершена');
+    toast.success(shouldPublish ? 'Фотография загружена и опубликована!' : 'Фотография успешно загружена!', 'Загрузка завершена');
     
   } catch (err) {
     const errorMsg = err.response?.data?.message || err.message || 'Неизвестная ошибка';
@@ -1014,6 +1058,15 @@ onMounted(() => {
   background-size: 1.5em 1.5em;
   padding-right: 2.5rem;
 }
+.publish-toggle {
+  display: flex; align-items: flex-start; gap: .75rem; margin: 1.25rem 0;
+  padding: .85rem; background: rgba(59,130,246,.08);
+  border: 1px solid rgba(59,130,246,.25); border-radius: 8px; cursor: pointer;
+}
+.publish-toggle input { width: 18px; height: 18px; margin-top: .15rem; accent-color: #2563eb; }
+.publish-toggle span { display: flex; flex-direction: column; color: #e0e7ff; }
+.publish-toggle small { color: #94a3b8; line-height: 1.4; }
+.publish-fields { padding-left: .85rem; border-left: 2px solid rgba(96,165,250,.35); }
 
 /* ===== Детали фото ===== */
 .photo-detail-view {
@@ -1090,4 +1143,19 @@ onMounted(() => {
   border-top-color: #60a5fa; border-radius: 50%; animation: spin 1s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 640px) {
+  .page-header { align-items: stretch; }
+  .page-header > .btn { width: 100%; justify-content: center; }
+  .gallery-grid { grid-template-columns: 1fr; }
+  .photo-actions { opacity: 1; }
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal { max-height: 94dvh; border-radius: 14px 14px 0 0; }
+  .modal-header, .modal-body, .modal-footer { padding-left: 1rem; padding-right: 1rem; }
+  .modal-footer { flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1; justify-content: center; }
+  .drop-zone { min-height: 180px; padding: 2rem 1rem; }
+  .meta-row { align-items: flex-start; gap: .5rem; }
+  .assembly-detail-item { align-items: flex-start; flex-wrap: wrap; }
+}
 </style>

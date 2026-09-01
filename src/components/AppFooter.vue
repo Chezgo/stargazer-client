@@ -23,4 +23,5 @@
   margin: 0 auto;
   padding: 0 1.5rem;
 }
+@media (max-width: 768px) { .app-footer { display: none; } }
 </style>

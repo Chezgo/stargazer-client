@@ -231,4 +231,34 @@ h3 { font-size: 1.1rem; font-weight: 600; }
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover { background: #2563eb; }
+
+@media (max-width: 768px) {
+  .content-wrapper { display: block; min-height: calc(100vh - 62px); }
+  .main-content { min-height: calc(100vh - 62px); padding: 1rem 1rem calc(5.25rem + env(safe-area-inset-bottom)); overflow: visible; }
+  h1 { font-size: 1.5rem; line-height: 1.25; }
+  h2 { font-size: 1.2rem; }
+  .page-header { margin-bottom: 1.25rem; }
+  .card { border-radius: 10px; }
+}
+
+@media (max-width: 640px) {
+  input, select, textarea { font-size: 16px !important; }
+  .modal-overlay { align-items: flex-end !important; padding: 0 !important; }
+  .modal { width: 100% !important; max-height: 94dvh !important; border-radius: 14px 14px 0 0 !important; }
+  .modal-header, .modal-body { padding-left: 1rem !important; padding-right: 1rem !important; }
+  .modal-footer { flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1; justify-content: center; }
+  .controls-bar { align-items: stretch !important; }
+  .sort-control, .page-control { width: 100%; justify-content: space-between; }
+  .sort-control select { min-width: 0; flex: 1; }
+  .data-table, .data-table tbody, .data-table tr, .data-table td { display: block; width: 100%; }
+  .data-table thead { display: none; }
+  .data-table tbody { padding: .35rem; }
+  .data-table tr { margin-bottom: .6rem; padding: .75rem; background: rgba(30,41,59,.45); border-radius: 8px; }
+  .data-table tr:last-child { margin-bottom: 0; }
+  .data-table td { padding: .3rem .25rem !important; border: 0 !important; white-space: normal; }
+  .data-table td:first-child { color: #64748b; font-size: .78rem; }
+  .data-table .text-truncate { max-width: none; white-space: normal; }
+  .data-table .action-buttons { justify-content: flex-end; padding-top: .25rem; }
+}
 </style>
