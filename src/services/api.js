@@ -3,8 +3,7 @@ import { useAuthStore } from '@/stores/auth';
 import { appConfig } from '@/config/appConfig';
 
 const api = axios.create({
-  baseURL: appConfig.apiBaseUrl,
-  headers: { 'Content-Type': 'application/json' }
+  baseURL: appConfig.apiBaseUrl
 });
 
 export const getApiErrorMessage = (err, fallback = 'Request failed') => {
@@ -18,6 +17,17 @@ export const getApiErrorMessage = (err, fallback = 'Request failed') => {
 
 api.interceptors.request.use(async (config) => {
   const authStore = useAuthStore();
+
+  // Не задаём Content-Type вручную для FormData: браузер сам добавит
+  // multipart/form-data с обязательным boundary. Иначе Axios может
+  // сериализовать FormData как JSON и Spring не увидит параметр `file`.
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    if (typeof config.headers?.delete === 'function') {
+      config.headers.delete('Content-Type');
+    } else if (config.headers) {
+      delete config.headers['Content-Type'];
+    }
+  }
 
   if (authStore.authenticated && authStore.token) {
     await authStore.ensureValidToken();

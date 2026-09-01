@@ -14,14 +14,14 @@ export default {
   },
 
   async uploadPhoto(file, assemblyId, onProgress) {
+    if (!(file instanceof File)) throw new TypeError('Не выбран файл для загрузки');
+    if (!assemblyId) throw new TypeError('Для загрузки фотографии необходимо выбрать сборку');
+
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', file, file.name);
 
-    const url = assemblyId
-      ? `/photos/upload?assemblyId=${assemblyId}`
-      : '/photos/upload';
-
-    return api.post(url, formData, {
+    return api.post('/photos/upload', formData, {
+      params: { assemblyId },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
           onProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));

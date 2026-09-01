@@ -145,9 +145,9 @@
 
           <!-- Привязка к сборке -->
           <div class="form-group">
-            <label>Привязать к сборке (опционально)</label>
-            <select v-model.number="uploadForm.assemblyId" class="form-select">
-              <option value="">Не привязывать</option>
+            <label>Сборка *</label>
+            <select v-model.number="uploadForm.assemblyId" class="form-select" required>
+              <option disabled value="">Выберите сборку</option>
               <option v-for="assembly in userAssemblies" :key="assembly.id" :value="assembly.id">
                 #{{ assembly.id }} — {{ assembly.name }}
               </option>
@@ -274,6 +274,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import userPhotosApi from '@/services/userPhotos';
+import { getApiErrorMessage } from '@/services/api';
 import assemblyDetailsApi from '@/services/assemblyDetails';
 import detailsInfoApi from '@/services/detailsInfo';
 import { 
@@ -314,7 +315,7 @@ const pageSize = ref(12);
 // Загрузка файла
 const selectedFile = ref(null);
 const uploadPreview = ref(null);
-const emptyUploadForm = () => ({ assemblyId: null, publish: true, title: '', description: '', visibility: 'PUBLIC' });
+const emptyUploadForm = () => ({ assemblyId: '', publish: true, title: '', description: '', visibility: 'PUBLIC' });
 const uploadForm = ref(emptyUploadForm());
 
 // Детали фото
@@ -566,6 +567,10 @@ const submitUpload = async () => {
     toast.error('Для публикации укажите название', 'Не заполнено название');
     return;
   }
+  if (!uploadForm.value.assemblyId) {
+    toast.error('Выберите сборку, к которой относится фотография', 'Не выбрана сборка');
+    return;
+  }
 
   uploading.value = true;
   uploadProgress.value = 0;
@@ -598,7 +603,7 @@ const submitUpload = async () => {
     toast.success(shouldPublish ? 'Фотография загружена и опубликована!' : 'Фотография успешно загружена!', 'Загрузка завершена');
     
   } catch (err) {
-    const errorMsg = err.response?.data?.message || err.message || 'Неизвестная ошибка';
+    const errorMsg = getApiErrorMessage(err, 'Не удалось загрузить фотографию');
     console.error('Upload error:', err);
     toast.error(errorMsg, 'Ошибка загрузки');
   } finally {
