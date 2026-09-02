@@ -14,15 +14,43 @@
         <header class="photo-header">
           <span class="avatar">{{ initial(photo.author?.username) }}</span>
           <div class="author"><strong>{{ photo.author?.username || 'Неизвестный автор' }}</strong><time>{{ formatDate(photo.publishedAt || photo.createdAt) }}</time></div>
-          <span v-if="photo.assembly?.name" class="assembly"><Telescope/>{{ photo.assembly.name }}</span>
+          <button
+            v-if="photo.assembly?.name"
+            class="assembly"
+            type="button"
+            :aria-expanded="assemblyPanel(photo.id).open"
+            @click="toggleAssembly(photo)"
+          >
+            <Telescope/>{{ photo.assembly.name }}<ChevronDown :class="{ rotated: assemblyPanel(photo.id).open }"/>
+          </button>
         </header>
+        <section v-if="photo.assembly && assemblyPanel(photo.id).open" class="assembly-panel">
+          <div v-if="assemblyPanel(photo.id).loading" class="assembly-panel-state"><i class="spinner small"></i>Загрузка сборки…</div>
+          <div v-else-if="assemblyPanel(photo.id).error" class="assembly-panel-state error">
+            <span>{{ assemblyPanel(photo.id).error }}</span><button type="button" @click="loadAssembly(photo, true)">Повторить</button>
+          </div>
+          <template v-else>
+            <h3>{{ assemblyPanel(photo.id).info?.name || photo.assembly.name }}</h3>
+            <p v-if="assemblyPanel(photo.id).info?.description" class="assembly-description">{{ assemblyPanel(photo.id).info.description }}</p>
+            <template v-if="assemblyPanel(photo.id).details.length">
+              <h4>Детали в сборке:</h4>
+              <div class="assembly-details">
+                <div v-for="item in assemblyPanel(photo.id).details" :key="item.id" class="assembly-detail">
+                  <strong>{{ item.detailInfo?.nameDetail || 'Деталь' }}</strong>
+                  <span v-if="item.detailInfo?.nameType" class="detail-type">{{ item.detailInfo.nameType }}</span>
+                  <span v-if="item.description" class="detail-note">— {{ item.description }}</span>
+                </div>
+              </div>
+            </template>
+            <p v-else class="assembly-empty">В этой сборке пока нет деталей</p>
+          </template>
+        </section>
         <div class="photo-frame">
           <img :src="photo.thumbnailUrl || photo.imageUrl || '/placeholder-photo.svg'" :alt="photo.title" loading="lazy" @click="imageModal=photo" @error="imageError">
           <button title="Открыть фотографию" @click="imageModal=photo"><Maximize2/></button>
         </div>
         <div class="photo-content">
-          <h2>{{ photo.title }}</h2><p v-if="photo.description" class="description">{{ photo.description }}</p>
-          <dl v-if="metadata(photo).length" class="metadata"><div v-for="([key,value]) in metadata(photo)" :key="key"><dt>{{ metaLabel(key) }}</dt><dd>{{ value }}</dd></div></dl>
+          <p v-if="photo.description" class="description">{{ photo.description }}</p>
           <button class="comments-toggle" @click="toggleComments(photo)"><MessageCircle/>{{ commentsLabel(photo.commentsCount) }}<ChevronDown :class="{ rotated: thread(photo.id).open }"/></button>
         </div>
 
@@ -54,7 +82,7 @@
     <p v-else-if="photos.length && !loading" class="feed-end">Вы посмотрели все публикации</p>
 
     <div v-if="imageModal" class="image-modal" role="dialog" aria-modal="true" @click.self="imageModal=null">
-      <button title="Закрыть" @click="imageModal=null"><X/></button><img :src="imageModal.imageUrl || imageModal.thumbnailUrl" :alt="imageModal.title"><div><strong>{{ imageModal.title }}</strong><span>{{ imageModal.author?.username }}</span></div>
+      <button title="Закрыть" @click="imageModal=null"><X/></button><img :src="imageModal.imageUrl || imageModal.thumbnailUrl" :alt="imageModal.title">
     </div>
   </div>
 </template>
@@ -66,9 +94,16 @@ import feedApi from '@/services/feed';
 import { getApiErrorMessage } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 import CommentRow from '@/components/FeedComment.vue';
+import userPhotosApi from '@/services/userPhotos';
+import assemblyDetailsApi from '@/services/assemblyDetails';
+import detailsInfoApi from '@/services/detailsInfo';
 
 const auth=useAuthStore(), photos=ref([]), nextCursor=ref(null), loading=ref(false), loadingMore=ref(false), feedError=ref(''), threads=reactive({}), editingId=ref(null), editText=ref(''), actionId=ref(null), imageModal=ref(null);
 const thread=id=>threads[id]||(threads[id]={open:false,items:[],nextCursor:null,loaded:false,loading:false,submitting:false,error:'',draft:'',replyTo:null,replyDraft:''});
+const assemblyPanels=reactive({});
+const assemblyPanel=photoId=>assemblyPanels[photoId]||(assemblyPanels[photoId]={open:false,loaded:false,loading:false,error:'',info:null,details:[]});
+const toggleAssembly=photo=>{const panel=assemblyPanel(photo.id);panel.open=!panel.open;if(panel.open&&!panel.loaded)loadAssembly(photo)};
+const loadAssembly=async(photo,reload=false)=>{const panel=assemblyPanel(photo.id);if(panel.loading)return;panel.loading=true;panel.error='';try{const [info,itemsResponse]=await Promise.all([userPhotosApi.getAssemblyForPhoto(photo.assembly.id),assemblyDetailsApi.getByAssemblyId(photo.assembly.id)]);const items=Array.isArray(itemsResponse)?itemsResponse:(itemsResponse?.content||[]);panel.info=info||photo.assembly;panel.details=await Promise.all(items.map(async item=>{try{return{...item,detailInfo:await detailsInfoApi.getById(item.idTelescopeDetail)}}catch{return{...item,detailInfo:null}}}));panel.loaded=true}catch(e){panel.error=getApiErrorMessage(e,'Не удалось загрузить информацию о сборке');if(reload)panel.loaded=false}finally{panel.loading=false}};
 const page=data=>({items:data?.items||data?.content||(Array.isArray(data)?data:[]),nextCursor:data?.nextCursor??null});
 const refreshFeed=async()=>{loading.value=true;feedError.value='';try{const p=page(await feedApi.getFeed());photos.value=p.items;nextCursor.value=p.nextCursor}catch(e){feedError.value=getApiErrorMessage(e,'Не удалось загрузить ленту')}finally{loading.value=false}};
 const loadMore=async()=>{if(!nextCursor.value||loadingMore.value)return;loadingMore.value=true;feedError.value='';try{const p=page(await feedApi.getFeed(nextCursor.value));photos.value.push(...p.items);nextCursor.value=p.nextCursor}catch(e){feedError.value=getApiErrorMessage(e,'Не удалось загрузить следующую страницу')}finally{loadingMore.value=false}};
@@ -83,10 +118,12 @@ const removeComment=async(p,c)=>{if(!confirm('Удалить комментар�
 const notify=(e,f)=>window.$toast?.error(getApiErrorMessage(e,f),'Ошибка');const isOwn=c=>c.author?.username===auth.getUsername;const initial=u=>(u||'?').trim()[0].toUpperCase();
 const plural=(n,w)=>n%100>=11&&n%100<=19?w[2]:n%10===1?w[0]:n%10>=2&&n%10<=4?w[1]:w[2];const commentsLabel=(n=0)=>`${n} ${plural(n,['комментарий','комментария','комментариев'])}`;
 function formatDate(v,compact=false){if(!v)return'';const d=new Date(v);if(Number.isNaN(d.getTime()))return'';return new Intl.DateTimeFormat('ru-RU',compact?{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}:{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(d)}
-const metadata=m=>Object.entries(m||{}).filter(([,v])=>v!==null&&v!=='');const metaLabel=k=>({exposure:'Выдержка',frames:'Кадры'}[k]||k);const imageError=e=>{e.target.src='/placeholder-photo.svg'};onMounted(refreshFeed);
+const imageError=e=>{e.target.src='/placeholder-photo.svg'};onMounted(refreshFeed);
 </script>
 
 <style scoped>
 .feed-page{position:relative;z-index:1;width:100%;max-width:860px;margin:auto}.page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.5rem}.page-header h1{display:flex;align-items:center;gap:.65rem;margin:0}.page-header h1 svg{width:28px;color:#60a5fa}.refresh{display:flex;align-items:center;gap:.5rem;padding:.6rem .85rem;color:#93c5fd;background:#2563eb1f;border:1px solid #60a5fa59;border-radius:9px;cursor:pointer}.refresh svg{width:17px}.refresh:disabled{opacity:.6}.feed-list{display:grid;gap:1.5rem}.feed-card{overflow:hidden;background:#111827f7;border:1px solid #60a5fa40;border-radius:16px;box-shadow:0 16px 45px #00000047}.photo-header{display:flex;align-items:center;gap:.75rem;padding:1rem 1.15rem}.avatar,.comment-avatar{display:grid;flex:0 0 auto;place-items:center;width:42px;height:42px;border-radius:50%;color:#fff;font-weight:700;background:linear-gradient(135deg,#2563eb,#7c3aed)}.author{display:flex;min-width:0;flex:1;flex-direction:column;line-height:1.35}.author strong{overflow:hidden;color:#e0e7ff;text-overflow:ellipsis}.author time{color:#64748b;font-size:.78rem}.assembly{display:flex;align-items:center;gap:.35rem;max-width:45%;padding:.35rem .6rem;overflow:hidden;border:1px solid #60a5fa40;border-radius:99px;color:#93c5fd;font-size:.75rem;white-space:nowrap;text-overflow:ellipsis}.assembly svg{width:14px}.photo-frame{position:relative;min-height:260px;max-height:620px;overflow:hidden;background:#030712}.photo-frame img{display:block;width:100%;max-height:620px;object-fit:contain;cursor:zoom-in}.photo-frame button{position:absolute;right:.75rem;bottom:.75rem;display:grid;place-items:center;width:38px;height:38px;color:#fff;background:#030712b8;border:1px solid #ffffff40;border-radius:9px;cursor:pointer}.photo-frame button svg{width:18px}.photo-content{padding:1.15rem}.photo-content h2{margin:0 0 .45rem;font-size:1.22rem;overflow-wrap:anywhere}.description{color:#cbd5e1;white-space:pre-wrap;overflow-wrap:anywhere}.metadata{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.9rem}.metadata div{display:flex;gap:.35rem;padding:.3rem .55rem;background:#3b82f61a;border-radius:7px;font-size:.78rem}.metadata dt{color:#64748b}.metadata dd{color:#bfdbfe;font-weight:600}.comments-toggle{display:flex;align-items:center;width:100%;gap:.5rem;margin-top:1rem;padding-top:.85rem;color:#93c5fd;background:none;border:0;border-top:1px solid #94a3b81f;cursor:pointer}.comments-toggle svg{width:18px}.comments-toggle svg:last-child{margin-left:auto;transition:.2s}.comments-toggle .rotated{transform:rotate(180deg)}.comments-section{padding:1rem 1.15rem 1.2rem;background:#03071252;border-top:1px solid #60a5fa26}.comment-form{display:flex;align-items:flex-end;gap:.65rem;margin-bottom:1rem}textarea{width:100%;resize:vertical;min-height:44px;max-height:180px;padding:.7rem .8rem;color:#e2e8f0;background:#0b1120;border:1px solid #60a5fa4d;border-radius:9px;font:inherit;line-height:1.35}textarea:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 2px #60a5fa26}.comment-form>button{display:flex;align-items:center;gap:.4rem;min-height:44px;padding:.65rem .9rem;color:#fff;background:#2563eb;border:0;border-radius:9px;cursor:pointer}.comment-form>button svg{width:16px}.comment-form>button:disabled{opacity:.5}.comment-list{display:grid;gap:1rem}.comment{display:flex;gap:.7rem;min-width:0}.comment-avatar{width:32px;height:32px;font-size:.78rem}.comment-body{min-width:0;flex:1;padding:.65rem .75rem;background:#1e293b8c;border-radius:0 10px 10px}.comment-meta{display:flex;align-items:baseline;flex-wrap:wrap;gap:.45rem;margin-bottom:.25rem;font-size:.75rem}.comment-meta strong{color:#bfdbfe;font-size:.82rem}.comment-meta time,.comment-meta span{color:#64748b}.comment-body p{color:#cbd5e1;overflow-wrap:anywhere;white-space:pre-wrap}.comment-body p.deleted{color:#64748b;font-style:italic}.comment-actions{display:flex;gap:.7rem;margin-top:.4rem}.comment-actions button,.inline-actions button,.comments-state button,.load-comments{color:#93c5fd;background:none;border:0;cursor:pointer;font-size:.75rem}.comment-actions .danger{color:#fca5a5}.reply,.reply-form{margin:.65rem 0 0 2.45rem}.edit-form textarea,.reply-form textarea{min-height:60px}.inline-actions{display:flex;gap:.75rem;margin-top:.35rem}.comments-state{display:flex;align-items:center;justify-content:center;gap:.55rem;padding:1.5rem;color:#64748b;text-align:center}.comments-state.error,.inline-error{color:#fca5a5}.load-comments{display:block;margin:1rem auto 0;padding:.55rem}.state{display:flex;min-height:260px;flex-direction:column;align-items:center;justify-content:center;gap:.8rem;padding:2rem;color:#94a3b8;background:#111827;border:1px solid #60a5fa40;border-radius:16px;text-align:center}.state>svg{width:38px;color:#60a5fa}.state h2{margin:0}.state.error>svg{color:#fca5a5}.load-more{display:flex;align-items:center;justify-content:center;gap:.5rem;width:100%;margin-top:1.25rem;padding:.8rem;color:#bfdbfe;background:#2563eb1f;border:1px solid #60a5fa4d;border-radius:10px;cursor:pointer}.feed-end,.inline-error{margin-top:1.25rem;text-align:center;font-size:.85rem}.image-modal{position:fixed;z-index:2000;inset:0;display:grid;grid-template-rows:1fr auto;place-items:center;padding:3rem 1rem 1rem;background:#000000eb;backdrop-filter:blur(8px)}.image-modal>button{position:absolute;top:1rem;right:1rem;display:grid;place-items:center;width:42px;height:42px;color:#fff;background:#1e293bb3;border:1px solid #475569;border-radius:50%;cursor:pointer}.image-modal img{max-width:100%;max-height:calc(100vh - 110px);object-fit:contain}.image-modal div{display:flex;gap:.75rem;align-items:baseline;padding-top:.75rem}.image-modal span{color:#94a3b8}.spinner{display:block;width:34px;height:34px;border:3px solid #60a5fa33;border-top-color:#60a5fa;border-radius:50%;animation:spin .8s linear infinite}.spinner.small{width:18px;height:18px;border-width:2px}.spinning{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
-@media(max-width:640px){.page-header{align-items:center}.page-header h1{font-size:1.45rem}.page-subtitle{font-size:.85rem}.refresh{width:42px;height:42px;justify-content:center;padding:0}.refresh span{display:none}.feed-list{gap:1rem}.feed-card{border-radius:12px}.photo-header,.photo-content,.comments-section{padding-left:.85rem;padding-right:.85rem}.photo-frame{min-height:180px}.assembly{max-width:38%}.avatar{width:38px;height:38px}.comment-form{align-items:stretch}.comment-form>button{width:44px;justify-content:center;padding:0}.comment-form>button span{display:none}.reply,.reply-form{margin-left:1.25rem}.comment-body{padding:.55rem .65rem}.image-modal div{flex-direction:column;align-items:center;gap:0}}
+.photo-content{padding:.85rem 1.15rem}.description{margin:0;color:#cbd5e1;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}.comments-toggle{margin-top:0;padding-top:0;border-top:0}.description+.comments-toggle{margin-top:.85rem;padding-top:.75rem;border-top:1px solid #94a3b81f}.image-modal{display:flex;align-items:center;justify-content:center}
+.assembly{background:transparent;cursor:pointer}.assembly svg:last-child{margin-left:.1rem;transition:transform .2s}.assembly svg:last-child.rotated{transform:rotate(180deg)}.assembly-panel{padding:1rem 1.15rem;background:#0b1324;border-top:1px solid #60a5fa26}.assembly-panel h3{margin:0 0 .35rem;color:#e0e7ff;font-size:1rem;text-shadow:none}.assembly-description{margin:0 0 .9rem;color:#cbd5e1;font-size:.9rem;white-space:pre-wrap}.assembly-panel h4{margin:0 0 .55rem;color:#94a3b8;font-size:.85rem}.assembly-details{display:grid;gap:.55rem}.assembly-detail{display:flex;align-items:baseline;flex-wrap:wrap;gap:.4rem;color:#cbd5e1;font-size:.85rem}.assembly-detail strong{color:#e2e8f0}.detail-type{padding:.12rem .38rem;color:#bfdbfe;background:#3b82f61a;border-radius:4px;font-size:.72rem;font-weight:600}.detail-note,.assembly-empty{color:#94a3b8}.assembly-empty{margin:0;font-size:.85rem}.assembly-panel-state{display:flex;align-items:center;justify-content:center;gap:.55rem;min-height:70px;color:#94a3b8}.assembly-panel-state.error{flex-wrap:wrap;color:#fca5a5}.assembly-panel-state button{color:#93c5fd;background:none;border:0;cursor:pointer}
+@media(max-width:640px){.page-header{align-items:center}.page-header h1{font-size:1.45rem}.page-subtitle{font-size:.85rem}.refresh{width:42px;height:42px;justify-content:center;padding:0}.refresh span{display:none}.feed-list{gap:1rem}.feed-card{border-radius:12px}.photo-header,.photo-content,.comments-section{padding-left:.85rem;padding-right:.85rem}.photo-frame{min-height:180px}.assembly{max-width:38%}.avatar{width:38px;height:38px}.comment-form{align-items:stretch}.comment-form>button{width:44px;justify-content:center;padding:0}.comment-form>button span{display:none}.reply,.reply-form{margin-left:1.25rem}.comment-body{padding:.55rem .65rem}}
 </style>
