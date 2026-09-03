@@ -203,8 +203,9 @@
     </div>
 
     <!-- ===== Модальное окно: Детали фото ===== -->
+    <Teleport to="body">
     <div v-if="showDetailModal" class="modal-overlay" @click.self="closeDetailModal">
-      <div class="modal modal-xl">
+      <div class="modal modal-xl photo-detail-modal">
         <div class="modal-header">
           <h2>{{ selectedPhoto?.originalFilename }}</h2>
           <button @click="closeDetailModal" class="close-btn">
@@ -212,14 +213,16 @@
           </button>
         </div>
         
-        <div class="modal-body modal-body-scroll">
-          <div v-if="photoUrl" class="photo-detail-view">
-            <img 
-              :src="photoUrl" 
-              :alt="selectedPhoto?.originalFilename"
-              @error="handleDetailPhotoError"
-            >
-          </div>
+        <div class="modal-body modal-body-scroll photo-detail-body">
+          <PhotoArtifactsViewer
+            v-if="photoUrl && selectedPhoto"
+            :key="`${selectedPhoto.idPhoto}-${artifactsRevision}`"
+            class="photo-detail-view"
+            :photo-id="selectedPhoto.idPhoto"
+            :image-url="photoUrl"
+            :alt="selectedPhoto.originalFilename"
+            @image-error="handleDetailPhotoError"
+          />
           
           <div class="photo-meta-grid">
             <div class="meta-row">
@@ -259,15 +262,60 @@
           </div>
         </div>
         
-        <div class="modal-footer">
+        <div class="modal-footer photo-detail-actions">
+          <button @click="openArtifactEditor('captures')" class="btn">
+            <SlidersHorizontal class="action-icon" />
+            Изменить/добавить техническое описание
+          </button>
+          <button @click="openPublicationEditor" class="btn">
+            <Pencil class="action-icon" />
+            Изменить видимость и краткое описание
+          </button>
+          <button @click="openArtifactEditor('objects')" class="btn">
+            <Crosshair class="action-icon" />
+            Изменить/добавить объекты
+          </button>
           <button @click="handleDeletePhoto(selectedPhoto?.idPhoto)" class="btn btn-danger">
-            <Trash2 class="btn-icon" />
+            <Trash2 class="action-icon" />
             Удалить фото
           </button>
           <button @click="closeDetailModal" class="btn">Закрыть</button>
         </div>
       </div>
     </div>
+    </Teleport>
+
+    <Teleport to="body">
+    <PhotoArtifactsEditor
+      v-if="artifactEditor.open"
+      :key="`${artifactEditor.photoId}-${artifactEditor.mode}`"
+      :photo-id="artifactEditor.photoId"
+      :image-url="artifactEditor.imageUrl"
+      :mode="artifactEditor.mode"
+      :title="artifactEditor.title"
+      :skippable="artifactEditor.wizard"
+      :continue-label="artifactEditor.wizard ? (artifactEditor.mode === 'captures' ? 'Сохранить и продолжить' : 'Сохранить и завершить') : 'Сохранить'"
+      @skip="advanceArtifactWizard"
+      @saved="handleArtifactsSaved"
+      @close="closeArtifactEditor"
+    />
+    </Teleport>
+
+    <Teleport to="body">
+    <div v-if="showPublicationEditor" class="modal-overlay" @click.self="showPublicationEditor=false">
+      <div class="modal">
+        <div class="modal-header"><h2>Видимость и описание</h2><button class="close-btn" @click="showPublicationEditor=false"><X class="icon" /></button></div>
+        <form class="modal-body" @submit.prevent="savePublication">
+          <div class="form-group"><label>Название</label><input v-model.trim="publicationForm.title" maxlength="200" placeholder="Название публикации"></div>
+          <div class="form-group"><label>Краткое описание</label><textarea v-model.trim="publicationForm.description" maxlength="2000" rows="4"></textarea></div>
+          <div class="form-group"><label>Видимость</label><select v-model="publicationForm.visibility" class="form-select"><option value="PUBLIC">Для всех</option><option value="UNLISTED">По ссылке</option><option value="PRIVATE">Только для меня</option></select></div>
+          <label class="publish-toggle"><input v-model="publicationForm.isPublished" type="checkbox"><span><strong>Опубликовано</strong><small>Публичное фото отображается в ленте</small></span></label>
+          <p v-if="publicationError" class="inline-form-error">{{ publicationError }}</p>
+          <div class="modal-footer"><button type="button" class="btn" @click="showPublicationEditor=false">Отмена</button><button class="btn btn-primary" :disabled="publicationSaving">{{ publicationSaving ? 'Сохранение…' : 'Сохранить' }}</button></div>
+        </form>
+      </div>
+    </div>
+    </Teleport>
   </div>
 </template>
 
@@ -277,6 +325,8 @@ import userPhotosApi from '@/services/userPhotos';
 import { getApiErrorMessage } from '@/services/api';
 import assemblyDetailsApi from '@/services/assemblyDetails';
 import detailsInfoApi from '@/services/detailsInfo';
+import PhotoArtifactsViewer from '@/components/PhotoArtifactsViewer.vue';
+import PhotoArtifactsEditor from '@/components/PhotoArtifactsEditor.vue';
 import { 
   Camera, 
   Upload, 
@@ -288,7 +338,10 @@ import {
   Trash2, 
   Inbox, 
   Folder, 
-  X 
+  X,
+  Pencil,
+  Crosshair,
+  SlidersHorizontal
 } from 'lucide-vue-next';
 
 const photos = ref([]);
@@ -324,6 +377,12 @@ const photoUrl = ref(null);
 const assemblyInfo = ref(null);
 const assemblyDetails = ref([]);
 const assemblyLoading = ref(false);
+const artifactsRevision = ref(0);
+const artifactEditor = ref({ open: false, photoId: null, imageUrl: '', mode: 'captures', title: '', wizard: false });
+const showPublicationEditor = ref(false);
+const publicationSaving = ref(false);
+const publicationError = ref('');
+const publicationForm = ref({ title: '', description: '', visibility: 'PRIVATE', isPublished: false });
 
 // Форматирование
 const formatDate = (iso) => new Date(iso).toLocaleDateString('ru-RU', {
@@ -587,9 +646,9 @@ const submitUpload = async () => {
 
     const uploadedPhoto = uploadResponse.data || uploadResponse;
     const photoId = uploadedPhoto.id ?? uploadedPhoto.idPhoto;
+    if (!photoId) throw new Error('Сервис не вернул ID загруженной фотографии');
     const shouldPublish = uploadForm.value.publish;
     if (shouldPublish) {
-      if (!photoId) throw new Error('Сервис не вернул ID загруженной фотографии');
       await userPhotosApi.updatePhoto(photoId, {
         title: uploadForm.value.title.trim(),
         description: uploadForm.value.description.trim() || null,
@@ -598,9 +657,18 @@ const submitUpload = async () => {
       });
     }
 
+    const wizardImageUrl = uploadPreview.value;
     closeUploadModal();
-    fetchPhotos();
-    toast.success(shouldPublish ? 'Фотография загружена и опубликована!' : 'Фотография успешно загружена!', 'Загрузка завершена');
+    await fetchPhotos();
+    artifactEditor.value = {
+      open: true,
+      photoId,
+      imageUrl: wizardImageUrl,
+      mode: 'captures',
+      title: 'Шаг 2 из 3',
+      wizard: true
+    };
+    toast.success(shouldPublish ? 'Фото загружено. Добавьте параметры съёмки.' : 'Фото загружено. Добавьте параметры съёмки.', 'Шаг 1 завершён');
     
   } catch (err) {
     const errorMsg = getApiErrorMessage(err, 'Не удалось загрузить фотографию');
@@ -663,6 +731,62 @@ const closeDetailModal = () => {
   photoUrl.value = null;
   assemblyInfo.value = null;
   assemblyDetails.value = [];
+};
+
+const openArtifactEditor = (mode) => {
+  if (!selectedPhoto.value) return;
+  artifactEditor.value = { open: true, photoId: selectedPhoto.value.idPhoto, imageUrl: photoUrl.value, mode, title: selectedPhoto.value.originalFilename || 'Редактирование фото', wizard: false };
+};
+
+const closeArtifactEditor = () => {
+  artifactEditor.value = { open: false, photoId: null, imageUrl: '', mode: 'captures', title: '', wizard: false };
+};
+
+const advanceArtifactWizard = () => {
+  if (artifactEditor.value.mode === 'captures') {
+    artifactEditor.value = { ...artifactEditor.value, mode: 'objects', title: 'Шаг 3 из 3' };
+  } else {
+    closeArtifactEditor();
+    fetchPhotos();
+  }
+};
+
+const handleArtifactsSaved = () => {
+  artifactsRevision.value++;
+  if (artifactEditor.value.wizard) {
+    advanceArtifactWizard();
+    if (artifactEditor.value.open && artifactEditor.value.mode === 'objects') toast.success('Технические характеристики сохранены', 'Шаг 2 завершён');
+    else toast.success('Данные фотографии сохранены', 'Готово');
+  } else {
+    closeArtifactEditor();
+    toast.success('Данные фотографии сохранены', 'Готово');
+  }
+};
+
+const openPublicationEditor = () => {
+  const photo = selectedPhoto.value;
+  if (!photo) return;
+  publicationForm.value = { title: photo.title || '', description: photo.description || '', visibility: photo.visibility || 'PRIVATE', isPublished: Boolean(photo.isPublished ?? photo.published) };
+  publicationError.value = '';
+  showPublicationEditor.value = true;
+};
+
+const savePublication = async () => {
+  if (!selectedPhoto.value || publicationSaving.value) return;
+  publicationSaving.value = true;
+  publicationError.value = '';
+  try {
+    const payload = { ...publicationForm.value, title: publicationForm.value.title || null, description: publicationForm.value.description || null };
+    const updated = await userPhotosApi.updatePhoto(selectedPhoto.value.idPhoto, payload);
+    Object.assign(selectedPhoto.value, payload, updated || {});
+    showPublicationEditor.value = false;
+    toast.success('Видимость и описание обновлены', 'Сохранено');
+    fetchPhotos();
+  } catch (err) {
+    publicationError.value = getApiErrorMessage(err, 'Не удалось изменить фотографию');
+  } finally {
+    publicationSaving.value = false;
+  }
 };
 
 const handleDeletePhoto = async (photoId) => {
@@ -1018,6 +1142,7 @@ onMounted(() => {
   max-height: 90vh; display: flex; flex-direction: column;
 }
 .modal-xl { max-width: 900px; }
+.photo-detail-modal { max-width: 960px; max-height: calc(100dvh - 2rem); }
 .modal-header {
   display: flex; justify-content: space-between; align-items: center;
   padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(59, 130, 246, 0.2);
@@ -1038,6 +1163,7 @@ onMounted(() => {
 .close-btn:hover { color: #fff; }
 .modal-body { padding: 1.5rem; overflow-y: auto; flex: 1; }
 .modal-body-scroll { max-height: 60vh; overflow-y: auto; }
+.photo-detail-body { min-height: 0; max-height: none; }
 .modal-footer {
   display: flex; justify-content: flex-end; gap: 0.75rem;
   padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);
@@ -1063,6 +1189,11 @@ onMounted(() => {
   background-size: 1.5em 1.5em;
   padding-right: 2.5rem;
 }
+.photo-detail-actions { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.photo-detail-actions .btn { min-width: 0; justify-content: center; white-space: normal; line-height: 1.25; text-align: center; }
+.photo-detail-actions .action-icon { flex: 0 0 auto; width: 17px; height: 17px; }
+.photo-detail-actions .btn:nth-child(-n+3) { grid-column: span 2; }
+.photo-detail-actions .btn:nth-child(n+4) { grid-column: span 3; }
 .publish-toggle {
   display: flex; align-items: flex-start; gap: .75rem; margin: 1.25rem 0;
   padding: .85rem; background: rgba(59,130,246,.08);
@@ -1072,6 +1203,7 @@ onMounted(() => {
 .publish-toggle span { display: flex; flex-direction: column; color: #e0e7ff; }
 .publish-toggle small { color: #94a3b8; line-height: 1.4; }
 .publish-fields { padding-left: .85rem; border-left: 2px solid rgba(96,165,250,.35); }
+.inline-form-error { margin: .75rem 0; color: #fecaca; font-size: .9rem; }
 
 /* ===== Детали фото ===== */
 .photo-detail-view {
@@ -1081,6 +1213,9 @@ onMounted(() => {
 .photo-detail-view img {
   max-width: 100%; max-height: 400px; border-radius: 6px;
 }
+.photo-detail-view :deep(.artifact-image) { width: fit-content; max-width: 100%; margin: 0 auto; }
+.photo-detail-view :deep(.artifact-image img) { display: block; width: auto; max-width: 100%; max-height: min(52dvh, 540px); object-fit: contain; }
+.photo-detail-view :deep(.object-list), .photo-detail-view :deep(.details-toggle), .photo-detail-view :deep(.capture-details), .photo-detail-view :deep(.artifact-state) { text-align: left; }
 
 .photo-meta-grid {
   display: grid; gap: 0.75rem;
@@ -1159,8 +1294,11 @@ onMounted(() => {
   .modal-header, .modal-body, .modal-footer { padding-left: 1rem; padding-right: 1rem; }
   .modal-footer { flex-wrap: wrap; }
   .modal-footer .btn { flex: 1; justify-content: center; }
+  .photo-detail-actions { grid-template-columns: 1fr; }
+  .photo-detail-actions .btn:nth-child(n) { grid-column: auto; width: 100%; }
   .drop-zone { min-height: 180px; padding: 2rem 1rem; }
   .meta-row { align-items: flex-start; gap: .5rem; }
   .assembly-detail-item { align-items: flex-start; flex-wrap: wrap; }
 }
+.modal-overlay{z-index:10000}.photo-detail-modal>.modal-header{position:sticky;z-index:2;top:0;background:#111827}
 </style>

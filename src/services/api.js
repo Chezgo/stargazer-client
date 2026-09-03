@@ -8,6 +8,10 @@ const api = axios.create({
 
 export const getApiErrorMessage = (err, fallback = 'Request failed') => {
   if (err.response?.data?.errorMessage?.message) return err.response.data.errorMessage.message;
+  if (err.response?.data?.errorMessage && typeof err.response.data.errorMessage === 'object') {
+    const messages = Object.values(err.response.data.errorMessage).filter(Boolean);
+    if (messages.length) return messages.join('. ');
+  }
   if (err.response?.data?.message) return err.response.data.message;
   if (err.response?.data?.error) return err.response.data.error;
   if (err.response?.status) return `${fallback} (${err.response.status})`;

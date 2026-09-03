@@ -46,10 +46,11 @@
           </template>
         </section>
         <div class="photo-frame">
-          <img :src="photo.thumbnailUrl || photo.imageUrl || '/placeholder-photo.svg'" :alt="photo.title" loading="lazy" @click="imageModal=photo" @error="imageError">
-          <button title="Открыть фотографию" @click="imageModal=photo"><Maximize2/></button>
+          <PhotoArtifactsViewer :photo-id="photo.id" :image-url="photo.thumbnailUrl || photo.imageUrl" :alt="photo.title" @image-click="openDetail(photo)" @image-error="imageError" />
+          <button title="Открыть публикацию" @click="openDetail(photo)"><Maximize2/></button>
         </div>
         <div class="photo-content">
+          <h2 v-if="photo.title">{{ photo.title }}</h2>
           <p v-if="photo.description" class="description">{{ photo.description }}</p>
           <button class="comments-toggle" @click="toggleComments(photo)"><MessageCircle/>{{ commentsLabel(photo.commentsCount) }}<ChevronDown :class="{ rotated: thread(photo.id).open }"/></button>
         </div>
@@ -81,14 +82,47 @@
     <button v-if="nextCursor" class="load-more" :disabled="loadingMore" @click="loadMore"><LoaderCircle v-if="loadingMore" class="spinning"/>{{ loadingMore ? 'Загрузка…' : 'Показать ещё' }}</button>
     <p v-else-if="photos.length && !loading" class="feed-end">Вы посмотрели все публикации</p>
 
-    <div v-if="imageModal" class="image-modal" role="dialog" aria-modal="true" @click.self="imageModal=null">
-      <button title="Закрыть" @click="imageModal=null"><X/></button><img :src="imageModal.imageUrl || imageModal.thumbnailUrl" :alt="imageModal.title">
+    <Teleport to="body">
+    <div v-if="imageModal" class="feed-detail-overlay" role="dialog" aria-modal="true" @click.self="closeDetail">
+      <article class="detail-card">
+        <header class="photo-header">
+          <span class="avatar">{{ initial(imageModal.author?.username) }}</span>
+          <div class="author"><strong>{{ imageModal.author?.username || 'Неизвестный автор' }}</strong><time>{{ formatDate(imageModal.publishedAt || imageModal.createdAt) }}</time></div>
+          <button class="modal-close" title="Закрыть" aria-label="Закрыть подробный режим" @click="closeDetail"><X/></button>
+        </header>
+        <div class="detail-scroll">
+          <PhotoArtifactsViewer :photo-id="imageModal.id" :image-url="imageModal.imageUrl || imageModal.thumbnailUrl" :alt="imageModal.title" @image-error="imageError" />
+          <div class="photo-content">
+            <h2 v-if="imageModal.title">{{ imageModal.title }}</h2>
+            <p v-if="imageModal.description" class="description">{{ imageModal.description }}</p>
+          </div>
+          <section class="comments-section detail-comments">
+            <h3><MessageCircle/> {{ commentsLabel(imageModal.commentsCount) }}</h3>
+            <form class="comment-form" @submit.prevent="submitComment(imageModal)">
+              <textarea v-model="thread(imageModal.id).draft" maxlength="2000" rows="2" placeholder="Написать комментарий…" aria-label="Текст комментария"></textarea>
+              <button :disabled="thread(imageModal.id).submitting || !thread(imageModal.id).draft.trim()"><Send/><span>Отправить</span></button>
+            </form>
+            <div v-if="thread(imageModal.id).loading && !thread(imageModal.id).items.length" class="comments-state"><i class="spinner small"></i>Загрузка комментариев…</div>
+            <div v-else-if="thread(imageModal.id).error" class="comments-state error">{{ thread(imageModal.id).error }} <button @click="loadComments(imageModal,true)">Повторить</button></div>
+            <p v-else-if="!thread(imageModal.id).items.length" class="comments-state">Будьте первым, кто оставит комментарий.</p>
+            <div v-else class="comment-list">
+              <div v-for="comment in thread(imageModal.id).items" :key="comment.id" class="comment-thread">
+                <CommentRow :comment="comment" :own="isOwn(comment)" :editing-id="editingId" :edit-text="editText" :busy-id="actionId" @edit="startEdit" @edit-text="editText=$event" @save="saveEdit(imageModal,comment)" @cancel="cancelEdit" @remove="removeComment(imageModal,comment)" @reply="startReply(imageModal.id,comment)"/>
+                <form v-if="thread(imageModal.id).replyTo?.id === comment.id" class="reply-form" @submit.prevent="submitReply(imageModal,comment)"><textarea v-model="thread(imageModal.id).replyDraft" maxlength="2000" rows="2" :placeholder="`Ответ для ${comment.author?.username || 'пользователя'}…`"></textarea><div class="inline-actions"><button :disabled="thread(imageModal.id).submitting || !thread(imageModal.id).replyDraft.trim()">Ответить</button><button type="button" @click="cancelReply(imageModal.id)">Отмена</button></div></form>
+                <CommentRow v-for="reply in comment.replies || []" :key="reply.id" class="reply" :comment="reply" :own="isOwn(reply)" :editing-id="editingId" :edit-text="editText" :busy-id="actionId" :is-reply="true" @edit="startEdit" @edit-text="editText=$event" @save="saveEdit(imageModal,reply)" @cancel="cancelEdit" @remove="removeComment(imageModal,reply)"/>
+              </div>
+            </div>
+            <button v-if="thread(imageModal.id).nextCursor" class="load-comments" :disabled="thread(imageModal.id).loading" @click="loadComments(imageModal)">{{ thread(imageModal.id).loading ? 'Загрузка…' : 'Показать ещё комментарии' }}</button>
+          </section>
+        </div>
+      </article>
     </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { AlertTriangle, ChevronDown, LoaderCircle, Maximize2, MessageCircle, RefreshCw, Send, Sparkles, Telescope, X } from 'lucide-vue-next';
 import feedApi from '@/services/feed';
 import { getApiErrorMessage } from '@/services/api';
@@ -97,6 +131,7 @@ import CommentRow from '@/components/FeedComment.vue';
 import userPhotosApi from '@/services/userPhotos';
 import assemblyDetailsApi from '@/services/assemblyDetails';
 import detailsInfoApi from '@/services/detailsInfo';
+import PhotoArtifactsViewer from '@/components/PhotoArtifactsViewer.vue';
 
 const auth=useAuthStore(), photos=ref([]), nextCursor=ref(null), loading=ref(false), loadingMore=ref(false), feedError=ref(''), threads=reactive({}), editingId=ref(null), editText=ref(''), actionId=ref(null), imageModal=ref(null);
 const thread=id=>threads[id]||(threads[id]={open:false,items:[],nextCursor:null,loaded:false,loading:false,submitting:false,error:'',draft:'',replyTo:null,replyDraft:''});
@@ -115,10 +150,12 @@ const submitReply=async(p,parent)=>{const t=thread(p.id),text=t.replyDraft.trim(
 const startEdit=c=>{editingId.value=c.id;editText.value=c.text||''};const cancelEdit=()=>{editingId.value=null;editText.value=''};
 const saveEdit=async(_p,c)=>{const text=editText.value.trim();if(!text||actionId.value)return;actionId.value=c.id;try{Object.assign(c,await feedApi.updateComment(c.id,text)||{},{text});cancelEdit()}catch(e){notify(e,'Не удалось изменить комментарий')}finally{actionId.value=null}};
 const removeComment=async(p,c)=>{if(!confirm('Удалить комментарий? Ответы на него сохранятся.'))return;actionId.value=c.id;try{await feedApi.deleteComment(c.id);c.deleted=true;c.text=null;p.commentsCount=Math.max(0,(p.commentsCount||0)-1)}catch(e){notify(e,'Не удалось удалить комментарий')}finally{actionId.value=null}};
+const openDetail=p=>{imageModal.value=p;document.body.style.overflow='hidden';const t=thread(p.id);if(!t.loaded)loadComments(p,true)};
+const closeDetail=()=>{imageModal.value=null;document.body.style.overflow=''};
 const notify=(e,f)=>window.$toast?.error(getApiErrorMessage(e,f),'Ошибка');const isOwn=c=>c.author?.username===auth.getUsername;const initial=u=>(u||'?').trim()[0].toUpperCase();
 const plural=(n,w)=>n%100>=11&&n%100<=19?w[2]:n%10===1?w[0]:n%10>=2&&n%10<=4?w[1]:w[2];const commentsLabel=(n=0)=>`${n} ${plural(n,['комментарий','комментария','комментариев'])}`;
 function formatDate(v,compact=false){if(!v)return'';const d=new Date(v);if(Number.isNaN(d.getTime()))return'';return new Intl.DateTimeFormat('ru-RU',compact?{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}:{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(d)}
-const imageError=e=>{e.target.src='/placeholder-photo.svg'};onMounted(refreshFeed);
+const imageError=e=>{e.target.src='/placeholder-photo.svg'};const onKeydown=e=>{if(e.key==='Escape'&&imageModal.value)closeDetail()};onMounted(()=>{window.addEventListener('keydown',onKeydown);refreshFeed()});onBeforeUnmount(()=>{window.removeEventListener('keydown',onKeydown);document.body.style.overflow=''});
 </script>
 
 <style scoped>
@@ -126,4 +163,6 @@ const imageError=e=>{e.target.src='/placeholder-photo.svg'};onMounted(refreshFee
 .photo-content{padding:.85rem 1.15rem}.description{margin:0;color:#cbd5e1;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}.comments-toggle{margin-top:0;padding-top:0;border-top:0}.description+.comments-toggle{margin-top:.85rem;padding-top:.75rem;border-top:1px solid #94a3b81f}.image-modal{display:flex;align-items:center;justify-content:center}
 .assembly{background:transparent;cursor:pointer}.assembly svg:last-child{margin-left:.1rem;transition:transform .2s}.assembly svg:last-child.rotated{transform:rotate(180deg)}.assembly-panel{padding:1rem 1.15rem;background:#0b1324;border-top:1px solid #60a5fa26}.assembly-panel h3{margin:0 0 .35rem;color:#e0e7ff;font-size:1rem;text-shadow:none}.assembly-description{margin:0 0 .9rem;color:#cbd5e1;font-size:.9rem;white-space:pre-wrap}.assembly-panel h4{margin:0 0 .55rem;color:#94a3b8;font-size:.85rem}.assembly-details{display:grid;gap:.55rem}.assembly-detail{display:flex;align-items:baseline;flex-wrap:wrap;gap:.4rem;color:#cbd5e1;font-size:.85rem}.assembly-detail strong{color:#e2e8f0}.detail-type{padding:.12rem .38rem;color:#bfdbfe;background:#3b82f61a;border-radius:4px;font-size:.72rem;font-weight:600}.detail-note,.assembly-empty{color:#94a3b8}.assembly-empty{margin:0;font-size:.85rem}.assembly-panel-state{display:flex;align-items:center;justify-content:center;gap:.55rem;min-height:70px;color:#94a3b8}.assembly-panel-state.error{flex-wrap:wrap;color:#fca5a5}.assembly-panel-state button{color:#93c5fd;background:none;border:0;cursor:pointer}
 @media(max-width:640px){.page-header{align-items:center}.page-header h1{font-size:1.45rem}.page-subtitle{font-size:.85rem}.refresh{width:42px;height:42px;justify-content:center;padding:0}.refresh span{display:none}.feed-list{gap:1rem}.feed-card{border-radius:12px}.photo-header,.photo-content,.comments-section{padding-left:.85rem;padding-right:.85rem}.photo-frame{min-height:180px}.assembly{max-width:38%}.avatar{width:38px;height:38px}.comment-form{align-items:stretch}.comment-form>button{width:44px;justify-content:center;padding:0}.comment-form>button span{display:none}.reply,.reply-form{margin-left:1.25rem}.comment-body{padding:.55rem .65rem}}
+.photo-frame{max-height:none}.photo-frame>button{top:.75rem;bottom:auto}.photo-frame :deep(.artifact-image img){max-height:none;cursor:zoom-in;object-fit:initial}.feed-detail-overlay{position:fixed;z-index:2000;inset:0;display:flex;align-items:center;justify-content:center;padding:1.25rem;background:#000000eb;backdrop-filter:blur(8px)}.detail-card{display:flex;flex-direction:column;width:min(1000px,100%);max-height:calc(100dvh - 2.5rem);min-height:0;overflow:hidden;background:#111827;border:1px solid #475569;border-radius:15px;box-shadow:0 25px 80px #000}.detail-card>.photo-header{flex:0 0 auto;border-bottom:1px solid #334155}.modal-close{display:grid;flex:0 0 42px;place-items:center;width:42px;height:42px;color:#fff;background:#1e293b;border:1px solid #475569;border-radius:50%;cursor:pointer}.modal-close svg{width:20px}.detail-scroll{min-height:0;overflow-x:hidden;overflow-y:auto}.detail-scroll :deep(.artifact-viewer){width:100%;overflow:hidden}.detail-scroll :deep(.artifact-image){width:fit-content;max-width:100%;margin:0 auto}.detail-scroll :deep(.artifact-image img){display:block;width:auto;max-width:100%;max-height:min(62dvh,680px);cursor:default;object-fit:contain}.detail-scroll :deep(.object-list){width:100%}.detail-comments h3{display:flex;align-items:center;gap:.5rem;margin:0 0 1rem;text-shadow:none}.detail-comments h3 svg{width:19px}@media(max-width:640px){.feed-detail-overlay{align-items:flex-end;padding:0}.detail-card{max-height:96dvh;border-radius:14px 14px 0 0}.detail-scroll :deep(.artifact-image img){max-height:55dvh}.detail-card>.photo-header{padding:.75rem}.detail-comments{padding:.9rem}.detail-comments .reply,.detail-comments .reply-form{margin-left:.75rem}}
+.feed-detail-overlay{z-index:10000}.detail-card>.photo-header{position:sticky;z-index:2;top:0;background:#111827}@media(max-width:640px){.detail-card{max-height:100dvh}}
 </style>
