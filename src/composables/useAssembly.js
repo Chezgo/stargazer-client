@@ -50,7 +50,7 @@ export function useAssembly(assemblyId) {
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Удалить сборку "${assembly.value.name}"?`)) return;
+    if (!confirm(`Удалить сборку "${assembly.value.name}"? Фотографии сохранятся вместе с историческим снимком этой сборки.`)) return;
     try {
       await userAssembliesApi.delete(assemblyId.value);
       router.replace('/assemblies');

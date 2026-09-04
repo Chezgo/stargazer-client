@@ -39,8 +39,9 @@ export default {
     await api.delete(`/photos/${photoId}`);
   },
 
-  async getAssemblyForPhoto(assemblyId) {
-    return userAssembliesApi.getById(assemblyId);
+  async getAssemblySnapshot(photoId) {
+    const response = await api.get(`/photos/${photoId}/assembly`);
+    return response.data;
   },
 
   async getUserAssemblies() {

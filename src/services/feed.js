@@ -8,6 +8,31 @@ export default {
     return response.data;
   },
 
+  async getPhotoAssemblySnapshot(photoId) {
+    const response = await api.get(`/photos/${photoId}/assembly`);
+    return response.data;
+  },
+
+  async likePhoto(photoId) {
+    const response = await api.put(`/photos/${photoId}/like`);
+    return response.data;
+  },
+
+  async unlikePhoto(photoId) {
+    const response = await api.delete(`/photos/${photoId}/like`);
+    return response.data;
+  },
+
+  async likeAssembly(assemblyId) {
+    const response = await api.put(`/assemblies/${assemblyId}/like`);
+    return response.data;
+  },
+
+  async unlikeAssembly(assemblyId) {
+    const response = await api.delete(`/assemblies/${assemblyId}/like`);
+    return response.data;
+  },
+
   async getComments(photoId, cursor = null, limit = 20) {
     const params = { limit };
     if (cursor) params.cursor = cursor;

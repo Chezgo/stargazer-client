@@ -241,7 +241,7 @@
               <label>Загружено</label>
               <span>{{ formatDate(selectedPhoto?.createdAt) }}</span>
             </div>
-            <div class="meta-row full" v-if="selectedPhoto?.telescopeAssemblyId">
+            <div class="meta-row full" v-if="selectedPhoto?.telescopeAssemblyId || assemblyInfo">
               <label>Сборка</label>
               <div v-if="assemblyInfo" class="assembly-preview">
                 <h4>{{ assemblyInfo.name }}</h4>
@@ -249,9 +249,9 @@
                 
                 <div v-if="assemblyDetails.length" class="assembly-details-list">
                   <h5>Детали в сборке:</h5>
-                  <div v-for="item in assemblyDetails" :key="item.id" class="assembly-detail-item">
-                    <strong>{{ item.detailInfo?.nameDetail || 'Загрузка...' }}</strong>
-                    <span class="badge">{{ item.detailInfo?.nameType }}</span>
+                  <div v-for="item in assemblyDetails" :key="item.assemblyDetailId" class="assembly-detail-item">
+                    <strong>{{ item.detail?.name || 'Деталь' }}</strong>
+                    <span v-if="item.detail?.type?.name" class="badge">{{ item.detail.type.name }}</span>
                     <span v-if="item.description" class="detail-note">— {{ item.description }}</span>
                   </div>
                 </div>
@@ -323,8 +323,6 @@
 import { ref, onMounted } from 'vue';
 import userPhotosApi from '@/services/userPhotos';
 import { getApiErrorMessage } from '@/services/api';
-import assemblyDetailsApi from '@/services/assemblyDetails';
-import detailsInfoApi from '@/services/detailsInfo';
 import PhotoArtifactsViewer from '@/components/PhotoArtifactsViewer.vue';
 import PhotoArtifactsEditor from '@/components/PhotoArtifactsEditor.vue';
 import { 
@@ -690,33 +688,18 @@ const openPhotoDetail = async (photo) => {
     toast.warning('Не удалось загрузить фото в полном качестве', 'Внимание');
   }
   
-  if (photo.telescopeAssemblyId) {
-    await loadAssemblyInfo(photo.telescopeAssemblyId);
-  }
+  await loadAssemblyInfo(photo.idPhoto);
 };
 
-const loadAssemblyInfo = async (assemblyId) => {
+const loadAssemblyInfo = async (photoId) => {
   assemblyLoading.value = true;
   assemblyInfo.value = null;
   assemblyDetails.value = [];
   
   try {
-    assemblyInfo.value = await userPhotosApi.getAssemblyForPhoto(assemblyId);
-    
-    const items = await assemblyDetailsApi.getByAssemblyId(assemblyId);
-    
-    const enriched = await Promise.all(
-      items.map(async (item) => {
-        try {
-          const info = await detailsInfoApi.getById(item.idTelescopeDetail);
-          return { ...item, detailInfo: info };
-        } catch {
-          return { ...item, detailInfo: null };
-        }
-      })
-    );
-    
-    assemblyDetails.value = enriched;
+    const snapshot = await userPhotosApi.getAssemblySnapshot(photoId);
+    assemblyInfo.value = snapshot?.assembly || null;
+    assemblyDetails.value = snapshot?.assembly?.components || [];
     
   } catch (err) {
     console.warn('⚠️ Не удалось загрузить инфо о сборке:', err);

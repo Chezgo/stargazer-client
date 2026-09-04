@@ -31,6 +31,16 @@
           <p class="description">{{ assembly.description || '—' }}</p>
         </div>
         <div class="actions">
+          <button
+            class="btn btn-like"
+            :class="{ liked: assembly.likedByMe }"
+            :disabled="likeBusy"
+            :aria-pressed="Boolean(assembly.likedByMe)"
+            @click="toggleLike"
+          >
+            <Heart class="btn-icon" :fill="assembly.likedByMe ? 'currentColor' : 'none'" />
+            {{ assembly.likedByMe ? 'Нравится' : 'Поставить лайк' }} · {{ Number(assembly.likesCount) || 0 }}
+          </button>
           <button @click="openEditModal" class="btn">
             <Pencil class="btn-icon" />
             Редактировать
@@ -178,7 +188,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ArrowLeft, Pencil, Trash2, X } from 'lucide-vue-next';
+import { ArrowLeft, Heart, Pencil, Trash2, X } from 'lucide-vue-next';
 
 // Composables
 import { useAssembly } from '@/composables/useAssembly';
@@ -196,12 +206,15 @@ import DetailCatalogModal from './DetailCatalogModal.vue';
 
 // Services
 import assemblyDetailsApi from '@/services/assemblyDetails';
+import userAssembliesApi from '@/services/userAssemblies';
+import { getApiErrorMessage } from '@/services/api';
 
 const route = useRoute();
 const router = useRouter();
 
 const assemblyId = ref(parseInt(route.params.id, 10));
 const showChecklist = ref(false);
+const likeBusy = ref(false);
 
 // ===== Инициализация composables =====
 const {
@@ -251,6 +264,22 @@ const onDetailsChanged = async () => {
     await loadEvaluation();
   }
   await loadAvailableTypes();
+};
+
+const toggleLike = async () => {
+  if (!assembly.value || likeBusy.value) return;
+  likeBusy.value = true;
+  try {
+    const state = assembly.value.likedByMe
+      ? await userAssembliesApi.unlike(assemblyId.value)
+      : await userAssembliesApi.like(assemblyId.value);
+    assembly.value.likedByMe = Boolean(state.liked);
+    assembly.value.likesCount = Number(state.likesCount) || 0;
+  } catch (err) {
+    window.$toast?.error(getApiErrorMessage(err, 'Не удалось изменить лайк'), 'Ошибка');
+  } finally {
+    likeBusy.value = false;
+  }
 };
 
 const selectDetail = async (detail) => {
@@ -487,6 +516,7 @@ onMounted(async () => {
     width: 100%;
   }
 }
+.btn-like.liked { color: #fb7185; border-color: rgba(251, 113, 133, 0.55); background: rgba(251, 113, 133, 0.12); }
 @media (max-width: 640px) {
   .page-header { align-items: flex-start; flex-direction: column; }
   .card { padding: 1rem; }

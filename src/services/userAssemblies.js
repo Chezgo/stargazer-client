@@ -45,5 +45,15 @@ export default {
    */
   async delete(id) {
     await api.delete(`/assembly-user/${id}`);
+  },
+
+  async like(id) {
+    const response = await api.put(`/assemblies/${id}/like`);
+    return response.data;
+  },
+
+  async unlike(id) {
+    const response = await api.delete(`/assemblies/${id}/like`);
+    return response.data;
   }
 };

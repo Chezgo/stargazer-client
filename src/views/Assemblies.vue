@@ -232,7 +232,7 @@ const submitForm = async () => {
 };
 
 const handleDelete = async (id) => {
-  if (!confirm('Удалить эту сборку? Это действие необратимо.')) return;
+  if (!confirm('Удалить эту сборку? Фотографии сохранятся вместе с историческим снимком сборки.')) return;
   
   try {
     await userAssembliesApi.delete(id);
