@@ -6,14 +6,19 @@
         Мои наблюдения
       </h1>
       <p class="page-subtitle">Твои астрофотографии</p>
-      <button @click="openUploadModal" class="btn btn-primary" data-testid="btn-open-upload-photo">
+      <button v-if="activeSection === 'mine'" @click="openUploadModal" class="btn btn-primary" data-testid="btn-open-upload-photo">
         <Upload class="btn-icon" />
         Загрузить фото
       </button>
     </div>
 
+    <nav class="section-tabs" aria-label="Разделы наблюдений">
+      <button :class="{ active: activeSection === 'mine' }" @click="switchSection('mine')">Мои наблюдения</button>
+      <button :class="{ active: activeSection === 'liked' }" @click="switchSection('liked')"><Heart /> Лайкнутые / сохранённые</button>
+    </nav>
+
     <!-- Пагинация -->
-    <div class="controls-bar">
+    <div v-if="activeSection === 'mine'" class="controls-bar">
       <div class="page-control">
         <button @click="prevPage" :disabled="currentPage === 0" class="btn-icon">
           <ChevronLeft class="icon" />
@@ -35,7 +40,7 @@
     <div v-else-if="error" class="error-state">
       <AlertTriangle class="error-icon" />
       <p>{{ error }}</p>
-      <button @click="fetchPhotos" class="btn">Повторить</button>
+      <button @click="loadSection" class="btn">Повторить</button>
     </div>
 
     <!-- Галерея -->
@@ -73,18 +78,25 @@
           <button @click="openPhotoDetail(photo)" class="btn-icon" title="Открыть">
             <Eye class="icon" />
           </button>
-          <button @click="handleDeletePhoto(photo.idPhoto)" class="btn-icon danger" title="Удалить">
+          <button v-if="activeSection === 'mine'" @click="handleDeletePhoto(photo.idPhoto)" class="btn-icon danger" title="Удалить">
             <Trash2 class="icon" />
+          </button>
+          <button v-else @click="removeSavedPhoto(photo)" class="btn-icon liked" :disabled="photo._busy" title="Убрать из сохранённых">
+            <Heart class="icon" fill="currentColor" />
           </button>
         </div>
       </div>
       
       <div v-if="photos.length === 0" class="empty-gallery">
         <Inbox class="empty-icon" />
-        <p>Нет загруженных фотографий</p>
-        <button @click="openUploadModal" class="btn btn-primary">Загрузить первое фото</button>
+        <p>{{ activeSection === 'mine' ? 'Нет загруженных фотографий' : 'Нет сохранённых наблюдений' }}</p>
+        <button v-if="activeSection === 'mine'" @click="openUploadModal" class="btn btn-primary">Загрузить первое фото</button>
       </div>
     </div>
+
+    <button v-if="activeSection === 'liked' && likedNextCursor" class="btn load-more" :disabled="loadingMore" @click="fetchLikedPhotos(false)">
+      {{ loadingMore ? 'Загрузка...' : 'Показать ещё' }}
+    </button>
 
     <!-- ===== Модальное окно: Загрузка фото ===== -->
     <div v-if="showUploadModal" class="modal-overlay" @click.self="closeUploadModal">
@@ -262,22 +274,26 @@
           </div>
         </div>
         
-        <div class="modal-footer photo-detail-actions">
-          <button @click="openArtifactEditor('captures')" class="btn">
+        <div class="modal-footer photo-detail-actions" :class="{ 'saved-actions': activeSection === 'liked' }">
+          <button v-if="activeSection === 'mine'" @click="openArtifactEditor('captures')" class="btn">
             <SlidersHorizontal class="action-icon" />
             Изменить/добавить техническое описание
           </button>
-          <button @click="openPublicationEditor" class="btn">
+          <button v-if="activeSection === 'mine'" @click="openPublicationEditor" class="btn">
             <Pencil class="action-icon" />
             Изменить видимость и краткое описание
           </button>
-          <button @click="openArtifactEditor('objects')" class="btn">
+          <button v-if="activeSection === 'mine'" @click="openArtifactEditor('objects')" class="btn">
             <Crosshair class="action-icon" />
             Изменить/добавить объекты
           </button>
-          <button @click="handleDeletePhoto(selectedPhoto?.idPhoto)" class="btn btn-danger">
+          <button v-if="activeSection === 'mine'" @click="handleDeletePhoto(selectedPhoto?.idPhoto)" class="btn btn-danger">
             <Trash2 class="action-icon" />
             Удалить фото
+          </button>
+          <button v-else @click="removeSavedPhoto(selectedPhoto)" class="btn btn-like">
+            <Heart class="action-icon" fill="currentColor" />
+            Убрать из сохранённых
           </button>
           <button @click="closeDetailModal" class="btn">Закрыть</button>
         </div>
@@ -330,7 +346,8 @@ import {
   Upload, 
   ChevronLeft, 
   ChevronRight, 
-  AlertTriangle, 
+  AlertTriangle,
+  Heart,
   Telescope, 
   Eye, 
   Trash2, 
@@ -381,6 +398,9 @@ const showPublicationEditor = ref(false);
 const publicationSaving = ref(false);
 const publicationError = ref('');
 const publicationForm = ref({ title: '', description: '', visibility: 'PRIVATE', isPublished: false });
+const activeSection = ref('mine');
+const likedNextCursor = ref(null);
+const loadingMore = ref(false);
 
 // Форматирование
 const formatDate = (iso) => new Date(iso).toLocaleDateString('ru-RU', {
@@ -508,11 +528,12 @@ const fetchPhotos = async () => {
       size: pageSize.value
     });
     
-    photos.value = data.content || [];
-    totalPages.value = data.totalPages || 1;
-    totalElements.value = data.totalElements || 0;
-    
-    loadVisiblePhotoUrls();
+    if (activeSection.value === 'mine') {
+      photos.value = data.content || [];
+      totalPages.value = data.totalPages || 1;
+      totalElements.value = data.totalElements || 0;
+      loadVisiblePhotoUrls();
+    }
     
   } catch (err) {
     error.value = err.response?.data?.message || 'Не удалось загрузить фотографии';
@@ -521,6 +542,51 @@ const fetchPhotos = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const normalizeLikedPhoto = (photo) => {
+  const item = photo?.photo || photo;
+  const idPhoto = item.idPhoto ?? item.id;
+  return {
+    ...photo,
+    ...item,
+    idPhoto,
+    originalFilename: item.originalFilename || item.title || `Фото #${idPhoto}`,
+    previewUrl: item.previewUrl || item.thumbnailUrl || item.imageUrl,
+    telescopeAssemblyId: item.telescopeAssemblyId ?? item.assembly?.id,
+    _likedItem: true
+  };
+};
+
+const fetchLikedPhotos = async (reset = true) => {
+  retriedPhotos.value.clear();
+  if (reset) loading.value = true;
+  else loadingMore.value = true;
+  error.value = null;
+  try {
+    const data = await userPhotosApi.getLikedPhotos({ limit: 20, cursor: reset ? null : likedNextCursor.value });
+    const items = (data?.items || data?.content || (Array.isArray(data) ? data : [])).map(normalizeLikedPhoto);
+    if (activeSection.value === 'liked') {
+      photos.value = reset ? items : [...photos.value, ...items];
+      likedNextCursor.value = data?.nextCursor ?? null;
+    }
+  } catch (err) {
+    error.value = getApiErrorMessage(err, 'Не удалось загрузить сохранённые наблюдения');
+    toast.error(error.value, 'Ошибка загрузки');
+  } finally {
+    loading.value = false;
+    loadingMore.value = false;
+  }
+};
+
+const loadSection = () => activeSection.value === 'mine' ? fetchPhotos() : fetchLikedPhotos();
+const switchSection = (section) => {
+  if (activeSection.value === section) return;
+  closeDetailModal();
+  activeSection.value = section;
+  photos.value = [];
+  error.value = null;
+  loadSection();
 };
 
 const loadVisiblePhotoUrls = async () => {
@@ -682,7 +748,7 @@ const openPhotoDetail = async (photo) => {
   showDetailModal.value = true;
   
   try {
-    photoUrl.value = await userPhotosApi.getPhotoUrl(photo.idPhoto);
+    photoUrl.value = photo.imageUrl || photo.previewUrl || await userPhotosApi.getPhotoUrl(photo.idPhoto);
   } catch (err) {
     console.warn('⚠️ Не удалось получить URL:', err);
     toast.warning('Не удалось загрузить фото в полном качестве', 'Внимание');
@@ -790,6 +856,21 @@ const handleDeletePhoto = async (photoId) => {
     const errorMsg = err.response?.data?.message || err.message;
     console.error(err);
     toast.error(errorMsg, 'Ошибка удаления');
+  }
+};
+
+const removeSavedPhoto = async (photo) => {
+  if (!photo?.idPhoto || photo._busy) return;
+  photo._busy = true;
+  try {
+    await userPhotosApi.unlikePhoto(photo.idPhoto);
+    photos.value = photos.value.filter(item => item.idPhoto !== photo.idPhoto);
+    if (selectedPhoto.value?.idPhoto === photo.idPhoto) closeDetailModal();
+    toast.success('Наблюдение убрано из сохранённых', 'Готово');
+  } catch (err) {
+    toast.error(getApiErrorMessage(err, 'Не удалось убрать наблюдение из сохранённых'), 'Ошибка');
+  } finally {
+    photo._busy = false;
   }
 };
 
@@ -1177,6 +1258,8 @@ onMounted(() => {
 .photo-detail-actions .action-icon { flex: 0 0 auto; width: 17px; height: 17px; }
 .photo-detail-actions .btn:nth-child(-n+3) { grid-column: span 2; }
 .photo-detail-actions .btn:nth-child(n+4) { grid-column: span 3; }
+.photo-detail-actions.saved-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.photo-detail-actions.saved-actions .btn:nth-child(n) { grid-column: auto; }
 .publish-toggle {
   display: flex; align-items: flex-start; gap: .75rem; margin: 1.25rem 0;
   padding: .85rem; background: rgba(59,130,246,.08);
@@ -1267,11 +1350,19 @@ onMounted(() => {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.section-tabs { display: flex; gap: .5rem; margin: 0 0 1.25rem; padding: .35rem; width: fit-content; max-width: 100%; background: #0b1120; border: 1px solid rgba(59,130,246,.3); border-radius: 10px; }
+.section-tabs button { display: inline-flex; align-items: center; gap: .45rem; padding: .65rem .9rem; color: #94a3b8; background: transparent; border: 0; border-radius: 7px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.section-tabs button :deep(svg) { width: 16px !important; height: 16px !important; }
+.section-tabs button.active { color: #fff; background: #2563eb; }
+.btn-icon.liked, .btn-like { color: #fb7185; }
+.load-more { display: flex; margin: 1rem auto 0; }
+
 @media (max-width: 640px) {
   .page-header { align-items: stretch; }
   .page-header > .btn { width: 100%; justify-content: center; }
   .gallery-grid { grid-template-columns: 1fr; }
   .photo-actions { opacity: 1; }
+  .section-tabs { width: 100%; overflow-x: auto; }
   .modal-overlay { align-items: flex-end; padding: 0; }
   .modal { max-height: 94dvh; border-radius: 14px 14px 0 0; }
   .modal-header, .modal-body, .modal-footer { padding-left: 1rem; padding-right: 1rem; }

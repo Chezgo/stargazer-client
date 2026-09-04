@@ -8,8 +8,8 @@ export default {
     return response.data;
   },
 
-  async getPhotoAssemblySnapshot(photoId) {
-    const response = await api.get(`/photos/${photoId}/assembly`);
+  async getPublicAssembly(assemblyId) {
+    const response = await api.get(`/assemblies/${assemblyId}`);
     return response.data;
   },
 

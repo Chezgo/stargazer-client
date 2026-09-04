@@ -52,6 +52,18 @@ export default {
     return response.data;
   },
 
+  async getPublicById(id) {
+    const response = await api.get(`/assemblies/${id}`);
+    return response.data;
+  },
+
+  async getLiked({ limit = 20, cursor = null } = {}) {
+    const params = { limit };
+    if (cursor) params.cursor = cursor;
+    const response = await api.get('/me/liked-assemblies', { params });
+    return response.data;
+  },
+
   async unlike(id) {
     const response = await api.delete(`/assemblies/${id}/like`);
     return response.data;

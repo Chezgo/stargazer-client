@@ -8,6 +8,18 @@ export default {
     return response.data;
   },
 
+  async getLikedPhotos({ limit = 20, cursor = null } = {}) {
+    const params = { limit };
+    if (cursor) params.cursor = cursor;
+    const response = await api.get('/me/liked-photos', { params });
+    return response.data;
+  },
+
+  async unlikePhoto(photoId) {
+    const response = await api.delete(`/photos/${photoId}/like`);
+    return response.data;
+  },
+
   async getPhotoUrl(photoId) {
     const response = await api.get(`/photos/${photoId}/url`);
     return response.data.url;

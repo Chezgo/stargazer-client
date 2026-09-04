@@ -8,13 +8,18 @@
         </h1>
         <p class="page-subtitle">Управление конфигурациями телескопов</p>
       </div>
-      <button @click="openCreateModal" class="btn btn-primary" data-testid="btn-create-assembly">
+      <button v-if="activeSection === 'mine'" @click="openCreateModal" class="btn btn-primary" data-testid="btn-create-assembly">
         Создать сборку
       </button>
     </div>
 
+    <nav class="section-tabs" aria-label="Разделы сборок">
+      <button :class="{ active: activeSection === 'mine' }" @click="switchSection('mine')">Мои сборки</button>
+      <button :class="{ active: activeSection === 'liked' }" @click="switchSection('liked')"><Heart /> Лайкнутые / сохранённые</button>
+    </nav>
+
     <!-- Пагинация и сортировка -->
-    <div class="controls-bar">
+    <div v-if="activeSection === 'mine'" class="controls-bar">
       <div class="sort-control">
         <label>Сортировка:</label>
         <select v-model="sortBy" @change="fetchAssemblies" data-testid="select-assemblies-sort">
@@ -45,7 +50,7 @@
     <div v-else-if="error" class="error-state">
       <AlertTriangle class="error-icon" />
       <p>{{ error }}</p>
-      <button @click="fetchAssemblies" class="btn">Повторить</button>
+      <button @click="loadSection" class="btn">Повторить</button>
     </div>
 
     <!-- Таблица сборок -->
@@ -56,14 +61,14 @@
             <th width="60">ID</th>
             <th>Название</th>
             <th>Описание</th>
-            <th width="140">Действия</th>
+            <th width="140">{{ activeSection === 'mine' ? 'Действия' : 'Сохранено' }}</th>
           </tr>
         </thead>
         <tbody>
           <tr 
             v-for="assembly in assemblies" 
             :key="assembly.id"
-            @click="goToDetail(assembly.id)"
+            @click="openAssembly(assembly)"
             class="clickable-row"
             data-testid="assembly-row"
             :data-assembly-id="assembly.id"
@@ -73,20 +78,46 @@
             <td class="text-truncate">{{ assembly.description || '—' }}</td>
             <td @click.stop>
               <div class="action-buttons">
-                <button @click.stop="openEditModal(assembly)" class="btn-icon" title="Редактировать">
+                <button v-if="activeSection === 'mine'" @click.stop="openEditModal(assembly)" class="btn-icon" title="Редактировать">
                   <Pencil class="icon" />
                 </button>
-                <button @click.stop="handleDelete(assembly.id)" class="btn-icon danger" title="Удалить">
+                <button v-if="activeSection === 'mine'" @click.stop="handleDelete(assembly.id)" class="btn-icon danger" title="Удалить">
                   <Trash2 class="icon" />
+                </button>
+                <button v-else @click.stop="removeSavedAssembly(assembly)" class="btn-icon liked" :disabled="assembly._busy" title="Убрать из сохранённых">
+                  <Heart class="icon" fill="currentColor" />
                 </button>
               </div>
             </td>
           </tr>
           <tr v-if="assemblies.length === 0">
-            <td colspan="4" class="empty-state">Нет сборок. Создайте первую!</td>
+            <td colspan="4" class="empty-state">{{ activeSection === 'mine' ? 'Нет сборок. Создайте первую!' : 'Нет сохранённых сборок' }}</td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <button v-if="activeSection === 'liked' && likedNextCursor" class="btn load-more" :disabled="loadingMore" @click="fetchLikedAssemblies(false)">
+      {{ loadingMore ? 'Загрузка...' : 'Показать ещё' }}
+    </button>
+
+    <div v-if="publicAssembly" class="modal-overlay" @click.self="publicAssembly = null">
+      <div class="modal public-assembly-modal">
+        <div class="modal-header"><h2>{{ publicAssembly.name }}</h2><button class="close-btn" @click="publicAssembly = null"><X class="icon" /></button></div>
+        <div class="modal-body">
+          <p class="public-description">{{ publicAssembly.description || 'Описание не указано' }}</p>
+          <p v-if="publicAssembly.owner?.username" class="public-owner">Автор: {{ publicAssembly.owner.username }}</p>
+          <h3>Компоненты</h3>
+          <div v-if="publicAssemblyComponents.length" class="public-components">
+            <div v-for="component in publicAssemblyComponents" :key="component.assemblyDetailId || component.id" class="public-component">
+              <strong>{{ component.detail?.name || component.detailInfo?.nameDetail || component.name || 'Деталь' }}</strong>
+              <span>{{ component.detail?.type?.name || component.detailInfo?.nameType || '' }}</span>
+              <small v-if="component.description">{{ component.description }}</small>
+            </div>
+          </div>
+          <p v-else class="empty-state">Компоненты не указаны</p>
+        </div>
+      </div>
     </div>
 
     <!-- Модальное окно: Создание/Редактирование -->
@@ -123,7 +154,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import userAssembliesApi from '@/services/userAssemblies';
 import { 
@@ -131,6 +162,7 @@ import {
   ChevronLeft, 
   ChevronRight, 
   AlertTriangle, 
+  Heart,
   Pencil, 
   Trash2, 
   X 
@@ -143,6 +175,11 @@ const error = ref(null);
 const showModal = ref(false);
 const editingId = ref(null);
 const submitting = ref(false);
+const activeSection = ref('mine');
+const likedNextCursor = ref(null);
+const loadingMore = ref(false);
+const publicAssembly = ref(null);
+const publicAssemblyComponents = computed(() => publicAssembly.value?.components || publicAssembly.value?.assemblyDetails || publicAssembly.value?.details || []);
 
 // Пагинация
 const currentPage = ref(0);
@@ -165,8 +202,10 @@ const fetchAssemblies = async () => {
       sortDir: sortDir
     });
     
-    assemblies.value = data.content || [];
-    totalPages.value = data.totalPages || 1;
+    if (activeSection.value === 'mine') {
+      assemblies.value = data.content || [];
+      totalPages.value = data.totalPages || 1;
+    }
     
   } catch (err) {
     error.value = err.response?.data?.message || 'Не удалось загрузить сборки';
@@ -174,6 +213,39 @@ const fetchAssemblies = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const normalizeAssembly = (item) => {
+  const assembly = item?.assembly || item;
+  return { ...item, ...assembly, id: assembly?.id ?? assembly?.assemblyId };
+};
+
+const fetchLikedAssemblies = async (reset = true) => {
+  if (reset) loading.value = true;
+  else loadingMore.value = true;
+  error.value = null;
+  try {
+    const data = await userAssembliesApi.getLiked({ limit: 20, cursor: reset ? null : likedNextCursor.value });
+    const items = (data?.items || data?.content || (Array.isArray(data) ? data : [])).map(normalizeAssembly);
+    if (activeSection.value === 'liked') {
+      assemblies.value = reset ? items : [...assemblies.value, ...items];
+      likedNextCursor.value = data?.nextCursor ?? null;
+    }
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Не удалось загрузить сохранённые сборки';
+  } finally {
+    loading.value = false;
+    loadingMore.value = false;
+  }
+};
+
+const loadSection = () => activeSection.value === 'mine' ? fetchAssemblies() : fetchLikedAssemblies();
+const switchSection = (section) => {
+  if (activeSection.value === section) return;
+  activeSection.value = section;
+  assemblies.value = [];
+  error.value = null;
+  loadSection();
 };
 
 const prevPage = () => {
@@ -192,6 +264,29 @@ const nextPage = () => {
 
 const goToDetail = (id) => {
   router.push(`/assemblies/${id}`);
+};
+
+const openAssembly = async (assembly) => {
+  if (activeSection.value === 'mine') return goToDetail(assembly.id);
+  try {
+    const response = await userAssembliesApi.getPublicById(assembly.id);
+    publicAssembly.value = response?.assembly || response;
+  } catch (err) {
+    alert('❌ ' + (err.response?.data?.message || 'Не удалось открыть публичную сборку'));
+  }
+};
+
+const removeSavedAssembly = async (assembly) => {
+  if (assembly._busy) return;
+  assembly._busy = true;
+  try {
+    await userAssembliesApi.unlike(assembly.id);
+    assemblies.value = assemblies.value.filter(item => item.id !== assembly.id);
+  } catch (err) {
+    alert('❌ ' + (err.response?.data?.message || 'Не удалось убрать сборку из сохранённых'));
+  } finally {
+    assembly._busy = false;
+  }
 };
 
 const openCreateModal = () => {
@@ -334,6 +429,18 @@ onMounted(fetchAssemblies);
   margin: 0;
   font-size: 0.95rem;
 }
+.section-tabs { display: flex; gap: .5rem; margin: 0 0 1.25rem; padding: .35rem; width: fit-content; max-width: 100%; background: #0b1120; border: 1px solid rgba(59,130,246,.3); border-radius: 10px; }
+.section-tabs button { display: inline-flex; align-items: center; gap: .45rem; padding: .65rem .9rem; color: #94a3b8; background: transparent; border: 0; border-radius: 7px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.section-tabs button svg { width: 16px; height: 16px; }
+.section-tabs button.active { color: #fff; background: #2563eb; }
+.load-more { display: flex; margin: 1rem auto 0; }
+.btn-icon.liked { color: #fb7185; }
+.public-assembly-modal { max-width: 700px; max-height: 85vh; overflow: auto; }
+.public-description { color: #cbd5e1; white-space: pre-wrap; }
+.public-owner { color: #94a3b8; }
+.public-components { display: grid; gap: .65rem; }
+.public-component { display: grid; gap: .2rem; padding: .75rem; background: #0b1120; border: 1px solid rgba(59,130,246,.2); border-radius: 8px; }
+.public-component span, .public-component small { color: #94a3b8; }
 
 .controls-bar {
   display: flex; justify-content: space-between; align-items: center;
@@ -441,5 +548,6 @@ onMounted(fetchAssemblies);
     width: 100%;
     justify-content: center;
   }
+  .section-tabs { width: 100%; overflow-x: auto; }
 }
 </style>
