@@ -202,4 +202,14 @@ const getTypeTitle = (type) => {
   animation: spin 1s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 640px) {
+  .section-header { align-items: stretch; }
+  .section-header h2 { font-size: 1.1rem; }
+  .section-header .btn { min-height: 44px; justify-content: center; }
+  .group-header { min-height: 48px; }
+  .group-content { padding: .75rem; }
+  .types-grid { grid-template-columns: 1fr; }
+  .type-btn { min-height: 48px; flex-direction: row; justify-content: flex-start; text-align: left; }
+  .type-name { overflow-wrap: anywhere; }
+}
 </style>

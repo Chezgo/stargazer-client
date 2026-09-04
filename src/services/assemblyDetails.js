@@ -18,14 +18,6 @@ export default {
   },
 
   /**
-   * Обновить деталь в сборке (описание)
-   */
-  async updateInAssembly(assemblyId, detailId, data) {
-    const response = await api.put(`/assembly-user/${assemblyId}/details/${detailId}`, data);
-    return response.data;
-  },
-
-  /**
    * Удалить деталь из сборки
    */
   async removeFromAssembly(assemblyId, detailId) {

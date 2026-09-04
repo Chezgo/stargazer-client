@@ -1,4 +1,5 @@
 <template>
+  <Teleport to="body">
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal modal-xl">
       <div class="modal-header">
@@ -60,6 +61,12 @@
         </div>
         
         <!-- Список деталей -->
+        <div v-else-if="details.length === 0" class="catalog-empty">
+          <SearchX />
+          <p>По вашему запросу ничего не найдено</p>
+          <button type="button" class="btn btn-outline" @click="$emit('reset')">Сбросить фильтры</button>
+        </div>
+
         <div v-else class="catalog-grid">
           <div v-for="detail in details" :key="detail.id" class="catalog-card">
             <div class="catalog-header">
@@ -107,6 +114,7 @@
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup>
@@ -114,6 +122,7 @@ import {
   PlusCircle, 
   X, 
   Search, 
+  SearchX,
   RotateCcw, 
   CheckCircle, 
   ChevronLeft, 
@@ -147,7 +156,7 @@ const truncate = (text, length) => {
   display: flex; 
   align-items: center; 
   justify-content: center;
-  z-index: 1000; 
+  z-index: 10000;
   backdrop-filter: blur(4px);
 }
 
@@ -161,6 +170,7 @@ const truncate = (text, length) => {
   max-height: 90vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .modal-xl { 
@@ -208,6 +218,7 @@ const truncate = (text, length) => {
 .close-btn:hover { color: #fff; }
 
 .modal-body { 
+  min-height: 0;
   padding: 1.5rem;
   overflow-y: auto;
   flex: 1;
@@ -482,6 +493,20 @@ const truncate = (text, length) => {
   
   .catalog-grid {
     grid-template-columns: 1fr;
+    max-height: none;
+    overflow: visible;
   }
+}
+.catalog-empty { display: grid; min-height: 220px; place-items: center; align-content: center; gap: .75rem; color: #94a3b8; text-align: center; }
+.catalog-empty svg { width: 36px; height: 36px; color: #60a5fa; }
+@media (max-width: 520px) {
+  .modal-overlay { align-items: flex-end; }
+  .modal-xl { width: 100%; max-height: calc(100dvh - env(safe-area-inset-top) - .5rem); border-radius: 14px 14px 0 0; }
+  .modal-header, .modal-body, .modal-footer { padding-left: 1rem; padding-right: 1rem; }
+  .modal-header h2 { min-width: 0; font-size: 1.05rem; overflow-wrap: anywhere; }
+  .filters-bar { grid-template-columns: 1fr; padding: .75rem; }
+  .filters-bar .btn { width: 100%; min-height: 44px; justify-content: center; }
+  .catalog-card .btn { min-height: 44px; justify-content: center; }
+  .modal-footer { padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
 }
 </style>

@@ -6,10 +6,6 @@ export function useAssemblyDetails(assemblyId) {
   const assemblyDetails = ref([]);
   const detailsLoading = ref(false);
   const detailsError = ref(null);
-  const showEditDetailModal = ref(false);
-  const submittingDetail = ref(false);
-  const editDetailForm = ref({ description: '' });
-  const selectedAssemblyDetail = ref(null);
 
   const groupedAssemblyDetails = computed(() => {
     return assemblyDetails.value.reduce((groups, item) => {
@@ -51,38 +47,6 @@ export function useAssemblyDetails(assemblyId) {
     }
   };
 
-  const openEditDetailModal = (item) => {
-    selectedAssemblyDetail.value = item;
-    editDetailForm.value = { description: item.description || '' };
-    showEditDetailModal.value = true;
-  };
-
-  const closeEditDetailModal = () => {
-    showEditDetailModal.value = false;
-    selectedAssemblyDetail.value = null;
-  };
-
-  const submitEditDetail = async () => {
-    if (!selectedAssemblyDetail.value) return;
-    
-    submittingDetail.value = true;
-    try {
-      await assemblyDetailsApi.updateInAssembly(
-        assemblyId.value,
-        selectedAssemblyDetail.value.id,
-        { description: editDetailForm.value.description }
-      );
-      
-      closeEditDetailModal();
-      await fetchAssemblyDetails();
-      
-    } catch (err) {
-      alert('❌ Ошибка: ' + (err.response?.data?.message || err.message));
-    } finally {
-      submittingDetail.value = false;
-    }
-  };
-
   const handleRemoveDetail = async (detailId) => {
     if (!confirm('Удалить эту деталь из сборки?')) return;
     
@@ -98,15 +62,8 @@ export function useAssemblyDetails(assemblyId) {
     assemblyDetails,
     detailsLoading,
     detailsError,
-    showEditDetailModal,
-    submittingDetail,
-    editDetailForm,
-    selectedAssemblyDetail,
     groupedAssemblyDetails,
     fetchAssemblyDetails,
-    openEditDetailModal,
-    closeEditDetailModal,
-    submitEditDetail,
     handleRemoveDetail
   };
 }

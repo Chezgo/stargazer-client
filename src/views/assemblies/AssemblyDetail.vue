@@ -92,7 +92,6 @@
             :error="detailsError"
             :grouped-details="groupedAssemblyDetails"
             @reload="onDetailsChanged"
-            @edit-detail="openEditDetailModal"
             @remove-detail="handleRemoveDetail"
           />
         </div>
@@ -111,51 +110,15 @@
       :current-page="catalogPage"
       :total-pages="catalogTotalPages"
       @close="closeAddDetailModal"
-      @search="fetchCatalogDetails"
+      @search="searchCatalog"
       @reset="resetFilters"
       @select="selectDetail"
       @prev-page="prevCatalogPage"
       @next-page="nextCatalogPage"
     />
 
-    <!-- Модальное окно редактирования детали в сборке -->
-    <div v-if="showEditDetailModal" class="modal-overlay" @click.self="closeEditDetailModal">
-      <div class="modal">
-        <div class="modal-header">
-          <h2>Редактировать деталь</h2>
-          <button @click="closeEditDetailModal" class="close-btn">
-            <X class="icon" />
-          </button>
-        </div>
-        
-        <form @submit.prevent="submitEditDetail" class="modal-body">
-          <div class="form-group">
-            <label>Примечание к детали</label>
-            <textarea 
-              v-model="editDetailForm.description" 
-              rows="3" 
-              placeholder="Например: Главное зеркало, установлено 2024"
-            ></textarea>
-          </div>
-          
-          <div class="form-group">
-            <label>Деталь</label>
-            <div class="readonly-field">
-              {{ selectedAssemblyDetail?.detailInfo?.nameDetail }}
-            </div>
-          </div>
-
-          <div class="modal-footer">
-            <button type="button" @click="closeEditDetailModal" class="btn">Отмена</button>
-            <button type="submit" class="btn btn-primary" :disabled="submittingDetail">
-              {{ submittingDetail ? 'Сохранение...' : 'Сохранить' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
     <!-- Модальное окно редактирования сборки -->
+    <Teleport to="body">
     <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
       <div class="modal">
         <div class="modal-header">
@@ -182,6 +145,7 @@
         </form>
       </div>
     </div>
+    </Teleport>
   </div>
 </template>
 
@@ -233,12 +197,9 @@ const {
 
 const {
   assemblyDetails, detailsLoading, detailsError,
-  showEditDetailModal, submittingDetail,
-  editDetailForm, selectedAssemblyDetail,
   groupedAssemblyDetails,
   fetchAssemblyDetails,
-  openEditDetailModal, closeEditDetailModal,
-  submitEditDetail, handleRemoveDetail
+  handleRemoveDetail
 } = useAssemblyDetails(assemblyId);
 
 const {
@@ -252,7 +213,7 @@ const {
   showAddDetailModal, selectedType,
   catalogDetails, catalogLoading, catalogError,
   catalogPage, catalogTotalPages, filters, brands,
-  fetchCatalogDetails, prevCatalogPage, nextCatalogPage,
+  fetchCatalogDetails, searchCatalog, prevCatalogPage, nextCatalogPage,
   resetFilters, openAddDetailModal, closeAddDetailModal
 } = useCatalogSearch();
 
@@ -285,8 +246,7 @@ const toggleLike = async () => {
 const selectDetail = async (detail) => {
   try {
     await assemblyDetailsApi.addToAssembly(assemblyId.value, {
-      idTelescopeDetail: detail.id,
-      description: `Деталь: ${detail.nameDetail}`
+      idTelescopeDetail: detail.id
     });
     
     closeAddDetailModal();
@@ -397,7 +357,7 @@ onMounted(async () => {
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.7);
   display: flex; align-items: center; justify-content: center;
-  z-index: 1000; backdrop-filter: blur(4px);
+  z-index: 10000; backdrop-filter: blur(4px);
 }
 .modal {
   background: #111827; border: 1px solid rgba(59, 130, 246, 0.4);
@@ -406,6 +366,7 @@ onMounted(async () => {
   max-height: 90vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .modal-header {
   display: flex; justify-content: space-between; align-items: center;
@@ -426,7 +387,7 @@ onMounted(async () => {
   height: 20px;
 }
 .close-btn:hover { color: #fff; }
-.modal-body { padding: 1.5rem; overflow-y: auto; flex: 1; }
+.modal-body { min-height: 0; padding: 1.5rem; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; flex: 1; }
 .modal-footer {
   display: flex; justify-content: flex-end; gap: 0.75rem;
   padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);
@@ -522,12 +483,14 @@ onMounted(async () => {
   .card { padding: 1rem; }
   .detail-row { flex-direction: column; gap: .25rem; }
   .detail-row label { min-width: 0; }
-  .actions { flex-wrap: wrap; }
-  .actions .btn { flex: 1; justify-content: center; }
+  .actions { display: grid; grid-template-columns: 1fr; }
+  .actions .btn { width: 100%; min-height: 44px; justify-content: center; }
   .modal-overlay { align-items: flex-end; }
-  .modal { width: 100%; max-height: 94dvh; border-radius: 14px 14px 0 0; }
-  .modal-header, .modal-body { padding-left: 1rem; padding-right: 1rem; }
+  .modal { width: 100%; max-height: calc(100dvh - env(safe-area-inset-top) - .5rem); border-radius: 14px 14px 0 0; }
+  .modal-header { padding: 1rem; }
+  .modal-body { padding: 1rem; padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
   .modal-footer { flex-wrap: wrap; }
-  .modal-footer .btn { flex: 1; justify-content: center; }
+  .modal-footer { position: sticky; bottom: calc(-1rem - env(safe-area-inset-bottom)); z-index: 2; margin: 1rem -1rem calc(-1rem - env(safe-area-inset-bottom)); padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom)); background: #111827; }
+  .modal-footer .btn { flex: 1; min-height: 44px; justify-content: center; }
 }
 </style>

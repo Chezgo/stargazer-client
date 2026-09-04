@@ -101,6 +101,7 @@
       {{ loadingMore ? 'Загрузка...' : 'Показать ещё' }}
     </button>
 
+    <Teleport to="body">
     <div v-if="publicAssembly" class="modal-overlay" @click.self="publicAssembly = null">
       <div class="modal public-assembly-modal">
         <div class="modal-header"><h2>{{ publicAssembly.name }}</h2><button class="close-btn" @click="publicAssembly = null"><X class="icon" /></button></div>
@@ -119,8 +120,10 @@
         </div>
       </div>
     </div>
+    </Teleport>
 
     <!-- Модальное окно: Создание/Редактирование -->
+    <Teleport to="body">
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal" data-testid="assembly-modal">
         <div class="modal-header">
@@ -150,6 +153,7 @@
         </form>
       </div>
     </div>
+    </Teleport>
   </div>
 </template>
 
@@ -486,12 +490,16 @@ onMounted(fetchAssemblies);
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.7);
   display: flex; align-items: center; justify-content: center;
-  z-index: 1000; backdrop-filter: blur(4px);
+  z-index: 10000; backdrop-filter: blur(4px);
 }
 .modal {
   background: #111827; border: 1px solid rgba(59, 130, 246, 0.4);
   border-radius: 12px; width: 90%; max-width: 500px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  max-height: min(90dvh, 760px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 .modal-header {
   display: flex; justify-content: space-between; align-items: center;
@@ -506,7 +514,7 @@ onMounted(fetchAssemblies);
   padding: 0.25rem;
 }
 .close-btn:hover { color: #fff; }
-.modal-body { padding: 1.5rem; }
+.modal-body { min-height: 0; padding: 1.5rem; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .modal-footer {
   display: flex; justify-content: flex-end; gap: 0.75rem;
   padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);
@@ -549,5 +557,13 @@ onMounted(fetchAssemblies);
     justify-content: center;
   }
   .section-tabs { width: 100%; overflow-x: auto; }
+  .card { overflow-x: hidden; }
+  .modal-overlay { align-items: flex-end; }
+  .modal { width: 100%; max-height: calc(100dvh - env(safe-area-inset-top) - .5rem); border-radius: 14px 14px 0 0; }
+  .modal-header { padding: 1rem; }
+  .modal-body { padding: 1rem; padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
+  .modal-footer { position: sticky; bottom: calc(-1rem - env(safe-area-inset-bottom)); z-index: 2; margin: 1rem -1rem calc(-1rem - env(safe-area-inset-bottom)); padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom)); background: #111827; }
+  .modal-footer .btn { min-height: 44px; }
+  .public-assembly-modal .modal-body { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); }
 }
 </style>

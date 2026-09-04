@@ -228,4 +228,9 @@ const onGoalChange = (event) => {
 .status-success { color: #4ade80; }
 .status-warning { color: #fcd34d; }
 .status-danger { color: #fca5a5; }
+@media (max-width: 640px) {
+  .goal-select { min-height: 48px; }
+  .evaluation-summary { padding: 1rem; }
+  .evaluation-summary .btn { width: 100%; min-height: 44px; justify-content: center; white-space: normal; }
+}
 </style>

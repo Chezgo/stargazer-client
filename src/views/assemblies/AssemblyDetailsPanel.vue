@@ -48,13 +48,6 @@
               <h4>{{ item.detailInfo?.nameDetail || 'Загрузка...' }}</h4>
               <div class="detail-actions">
                 <button 
-                  @click="$emit('edit-detail', item)" 
-                  class="btn-icon" 
-                  title="Редактировать"
-                >
-                  <Pencil class="icon" />
-                </button>
-                <button 
                   @click="$emit('remove-detail', item.id)" 
                   class="btn-icon danger" 
                   title="Удалить"
@@ -91,7 +84,7 @@
 </template>
 
 <script setup>
-import { Package, RefreshCw, Pencil, Trash2 } from 'lucide-vue-next';
+import { Package, RefreshCw, Trash2 } from 'lucide-vue-next';
 
 const props = defineProps({
   details: Array,
@@ -100,7 +93,7 @@ const props = defineProps({
   groupedDetails: Object
 });
 
-const emit = defineEmits(['reload', 'edit-detail', 'remove-detail']);
+defineEmits(['reload', 'remove-detail']);
 </script>
 
 <style scoped>
@@ -246,4 +239,16 @@ const emit = defineEmits(['reload', 'edit-detail', 'remove-detail']);
   animation: spin 1s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 640px) {
+  .section-header { align-items: stretch; }
+  .section-header h2 { font-size: 1.1rem; }
+  .section-header .btn { min-height: 44px; justify-content: center; }
+  .type-group-header, .details-list { padding-left: .75rem; padding-right: .75rem; }
+  .detail-item { padding: .75rem; }
+  .detail-header { gap: .75rem; }
+  .detail-header h4 { min-width: 0; overflow-wrap: anywhere; }
+  .detail-actions { flex: 0 0 auto; }
+  .btn-icon { width: 44px; height: 44px; }
+  .attr-tag { max-width: 100%; overflow-wrap: anywhere; }
+}
 </style>

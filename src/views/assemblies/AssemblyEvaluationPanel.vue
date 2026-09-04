@@ -223,4 +223,14 @@ const getRequirementText = (type) => {
   font-size: 0.9rem;
   font-style: italic;
 }
+@media (max-width: 640px) {
+  .evaluation-panel { padding: 1rem; }
+  .panel-header { align-items: stretch; flex-direction: column; gap: .75rem; }
+  .panel-header .btn { min-height: 44px; justify-content: center; }
+  .checklist-header { align-items: flex-start; flex-wrap: wrap; }
+  .checklist-info { min-width: 0; }
+  .checklist-info strong, .checklist-advice { overflow-wrap: anywhere; }
+  .checklist-quantity { margin-left: 2.25rem; }
+  .checklist-item > .btn { width: 100%; min-height: 44px; justify-content: center; white-space: normal; }
+}
 </style>
