@@ -20,82 +20,67 @@
     </div>
 
     <template v-else-if="assembly">
-      <!-- Карточка сборки -->
+      <!-- Основная информация о сборке -->
       <div class="card detail-card">
-        <div class="detail-row">
-          <label>Название</label>
-          <span class="value">{{ assembly.name }}</span>
-        </div>
-        <div class="detail-row full">
-          <label>Описание</label>
-          <p class="description">{{ assembly.description || '—' }}</p>
-        </div>
-        <div class="actions">
-          <button
-            class="btn btn-like"
-            :class="{ liked: assembly.likedByMe }"
-            :disabled="likeBusy"
-            :aria-pressed="Boolean(assembly.likedByMe)"
-            @click="toggleLike"
-          >
-            <Heart class="btn-icon" :fill="assembly.likedByMe ? 'currentColor' : 'none'" />
-            {{ assembly.likedByMe ? 'Нравится' : 'Поставить лайк' }} · {{ Number(assembly.likesCount) || 0 }}
-          </button>
-          <button @click="openEditModal" class="btn">
-            <Pencil class="btn-icon" />
-            Редактировать
-          </button>
-          <button @click="handleDelete" class="btn btn-danger">
-            <Trash2 class="btn-icon" />
-            Удалить
-          </button>
-        </div>
+          <div class="card-top-actions">
+            <button @click="openEditModal" class="btn">
+              <Pencil class="btn-icon" />
+              Редактировать
+            </button>
+            <button @click="handleDelete" class="btn btn-danger">
+              <Trash2 class="btn-icon" />
+              Удалить
+            </button>
+          </div>
+
+          <div class="detail-card-content">
+            <div class="detail-row">
+              <label>Название</label>
+              <span class="value">{{ assembly.name }}</span>
+            </div>
+            <div class="detail-row full">
+              <label>Описание</label>
+              <p class="description">{{ assembly.description || '—' }}</p>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button
+              class="btn btn-like"
+              :class="{ liked: assembly.likedByMe }"
+              :disabled="likeBusy"
+              :aria-pressed="Boolean(assembly.likedByMe)"
+              @click="toggleLike"
+            >
+              <Heart class="btn-icon" :fill="assembly.likedByMe ? 'currentColor' : 'none'" />
+              {{ assembly.likedByMe ? 'Нравится' : 'Поставить лайк' }} · {{ Number(assembly.likesCount) || 0 }}
+            </button>
+          </div>
       </div>
 
-      <!-- Цель сборки -->
-      <AssemblyGoalsPanel
-        :assembly-goals="assemblyGoals"
-        v-model:selectedGoalId="selectedGoalId"
+      <aside class="goal-summary" aria-label="Цель и оценка сборки">
+        <AssemblyGoalsPanel
+          :assembly-goals="assemblyGoals"
+          v-model:selectedGoalId="selectedGoalId"
+          :evaluation="evaluation"
+          @show-recommendations="scrollToEquipment"
+        />
+      </aside>
+
+      <ObservationEquipmentPanel
+        id="observation-equipment"
+        :types="displayAvailableTypes"
+        :details="assemblyDetails"
+        :has-goal="!!selectedGoalId"
         :evaluation="evaluation"
-        @show-checklist="showChecklist = !showChecklist"
+        :types-loading="typesLoading"
+        :details-loading="detailsLoading"
+        :types-error="typesError"
+        :details-error="detailsError"
+        @reload="onDetailsChanged"
+        @add-detail="openAddDetailModal"
+        @remove-detail="handleRemoveDetail"
       />
-
-      <!-- Чек-лист -->
-      <AssemblyEvaluationPanel
-        v-if="showChecklist && evaluation"
-        :evaluation="evaluation"
-        @add-missing-type="addMissingType"
-        @close="showChecklist = false"
-      />
-
-      <!-- Двухколоночный layout -->
-      <div class="two-column-layout">
-        <div class="left-column">
-          <AddDetailPanel
-            :types="displayAvailableTypes"
-            :expanded-groups="expandedGroups"
-            :loading="typesLoading"
-            :error="typesError"
-            :all-expanded="allGroupsExpanded"
-            :has-goal="!!selectedGoalId"
-            @toggle-group="toggleGroup"
-            @toggle-all="toggleAllGroups"
-            @reload="loadAvailableTypes"
-            @add-detail="openAddDetailModal"
-          />
-        </div>
-
-        <div class="right-column">
-          <AssemblyDetailsPanel
-            :details="assemblyDetails"
-            :loading="detailsLoading"
-            :error="detailsError"
-            :grouped-details="groupedAssemblyDetails"
-            @reload="onDetailsChanged"
-            @remove-detail="handleRemoveDetail"
-          />
-        </div>
-      </div>
     </template>
 
     <!-- Модальное окно каталога деталей -->
@@ -163,9 +148,7 @@ import { useCatalogSearch } from '@/composables/useCatalogSearch';
 
 // Child Components
 import AssemblyGoalsPanel from './AssemblyGoalsPanel.vue';
-import AssemblyEvaluationPanel from './AssemblyEvaluationPanel.vue';
-import AddDetailPanel from './AddDetailPanel.vue';
-import AssemblyDetailsPanel from './AssemblyDetailsPanel.vue';
+import ObservationEquipmentPanel from './ObservationEquipmentPanel.vue';
 import DetailCatalogModal from './DetailCatalogModal.vue';
 
 // Services
@@ -177,7 +160,6 @@ const route = useRoute();
 const router = useRouter();
 
 const assemblyId = ref(parseInt(route.params.id, 10));
-const showChecklist = ref(false);
 const likeBusy = ref(false);
 
 // ===== Инициализация composables =====
@@ -197,16 +179,13 @@ const {
 
 const {
   assemblyDetails, detailsLoading, detailsError,
-  groupedAssemblyDetails,
   fetchAssemblyDetails,
-  handleRemoveDetail
+  handleRemoveDetail: removeAssemblyDetail
 } = useAssemblyDetails(assemblyId);
 
 const {
   displayAvailableTypes, typesLoading, typesError,
-  expandedGroups, allGroupsExpanded,
-  loadAvailableTypes, toggleGroup, toggleAllGroups,
-  getTypeIcon, getButtonTypeTitle
+  loadAvailableTypes
 } = useAvailableTypes(assemblyId, selectedGoalId);
 
 const {
@@ -225,6 +204,19 @@ const onDetailsChanged = async () => {
     await loadEvaluation();
   }
   await loadAvailableTypes();
+};
+
+const scrollToEquipment = () => {
+  document.getElementById('observation-equipment')?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start'
+  });
+};
+
+const handleRemoveDetail = async (detailId) => {
+  await removeAssemblyDetail(detailId);
+  await loadAvailableTypes();
+  if (selectedGoalId.value) await loadEvaluation();
 };
 
 const toggleLike = async () => {
@@ -246,7 +238,8 @@ const toggleLike = async () => {
 const selectDetail = async (detail) => {
   try {
     await assemblyDetailsApi.addToAssembly(assemblyId.value, {
-      idTelescopeDetail: detail.id
+      idTelescopeDetail: detail.id,
+      description: 'Деталь в сборке из пользовательского интерфейса'
     });
     
     closeAddDetailModal();
@@ -268,23 +261,6 @@ const selectDetail = async (detail) => {
   }
 };
 
-const addMissingType = async (typeName) => {
-  let targetType = null;
-  for (const group of Object.values(displayAvailableTypes.value)) {
-    const found = group.find(t => t.name === typeName);
-    if (found) {
-      targetType = found;
-      break;
-    }
-  }
-  
-  if (targetType) {
-    await openAddDetailModal(targetType);
-  } else {
-    alert('Не удалось найти тип детали: ' + typeName);
-  }
-};
-
 // ===== Инициализация =====
 onMounted(async () => {
   await Promise.all([
@@ -298,7 +274,7 @@ onMounted(async () => {
 
 <style scoped>
 /* ===== Базовые стили ===== */
-.page { max-width: 1400px; margin: 0 auto; }
+.page { max-width: 1600px; margin: 0 auto; }
 .page-header { margin-bottom: 2rem; display: flex; align-items: center; gap: 1rem; }
 .btn-back {
   background: transparent; border: 1px solid rgba(255,255,255,0.2);
@@ -320,7 +296,22 @@ onMounted(async () => {
   border-radius: 12px; 
   padding: 1.5rem; 
 }
-.detail-card { margin-bottom: 2rem; }
+.detail-card {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.detail-card-content .detail-row:first-child {
+  padding-right: 18rem;
+}
+
+.card-top-actions {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  gap: 0.75rem;
+}
 
 .detail-row { 
   display: flex; gap: 1rem; padding: 0.75rem 0; 
@@ -341,16 +332,26 @@ onMounted(async () => {
   border-top: 1px solid rgba(255,255,255,0.1); 
 }
 
-/* ===== Двухколоночный layout ===== */
-.two-column-layout {
-  display: grid;
-  grid-template-columns: 35% 65%;
-  gap: 2rem;
-  margin-top: 2rem;
+/* ===== Цель и оценка ===== */
+.goal-summary {
+  min-width: 0;
+  margin-bottom: 1.5rem;
 }
 
-.left-column, .right-column {
-  min-width: 0;
+.goal-summary :deep(.goal-section) {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  gap: 1.5rem;
+}
+
+.goal-summary :deep(.goal-section.has-evaluation) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.goal-summary :deep(.goal-zone),
+.goal-summary :deep(.evaluation-summary) {
+  height: 100%;
 }
 
 /* ===== Модальные окна ===== */
@@ -469,18 +470,19 @@ onMounted(async () => {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ===== Адаптив ===== */
-@media (max-width: 1024px) {
-  .two-column-layout {
+@media (max-width: 1050px) {
+  .goal-summary :deep(.goal-section.has-evaluation) {
     grid-template-columns: 1fr;
   }
-  .left-column, .right-column {
-    width: 100%;
-  }
 }
+
 .btn-like.liked { color: #fb7185; border-color: rgba(251, 113, 133, 0.55); background: rgba(251, 113, 133, 0.12); }
 @media (max-width: 640px) {
   .page-header { align-items: flex-start; flex-direction: column; }
   .card { padding: 1rem; }
+  .detail-card-content .detail-row:first-child { padding-right: 0; }
+  .card-top-actions { position: static; display: grid; grid-template-columns: 1fr; margin-bottom: .75rem; }
+  .card-top-actions .btn { width: 100%; min-height: 44px; justify-content: center; }
   .detail-row { flex-direction: column; gap: .25rem; }
   .detail-row label { min-width: 0; }
   .actions { display: grid; grid-template-columns: 1fr; }

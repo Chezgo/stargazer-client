@@ -12,7 +12,7 @@
 <style scoped>
 .app-footer {
   background: #111827;
-  border-top: 1px solid rgba(59, 130, 246, 0.3);
+  border-top: 1px solid rgba(96, 165, 250, 0.3);
   padding: 1rem 0;
   text-align: center;
   color: #64748b;

@@ -50,7 +50,7 @@ const authStore = useAuthStore();
 }
 .app-header {
   background: #111827;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+  border-bottom: 1px solid rgba(96, 165, 250, 0.3);
   padding: 1rem 0;
   position: sticky;
   top: 0;

@@ -1,27 +1,32 @@
 <template>
-  <div class="section goal-section" data-testid="assembly-goals-panel">
-    <div class="section-header">
-      <h2>
-        <Target class="section-icon" />
-        Цель сборки
-      </h2>
-    </div>
-    
-    <div class="goal-selector">
-      <select 
-        :value="selectedGoalId"
-        @change="onGoalChange"
-        class="form-select goal-select"
-        data-testid="select-assembly-goal"
-      >
-        <option value="">Свободная сборка (без цели)</option>
-        <option v-for="goal in assemblyGoals" :key="goal.id" :value="goal.id">
-          {{ goal.name }}
-        </option>
-      </select>
+  <div
+    :class="['section', 'goal-section', { 'has-evaluation': evaluation && selectedGoalId !== null }]"
+    data-testid="assembly-goals-panel"
+  >
+    <div class="goal-zone">
+      <div class="section-header">
+        <h2>
+          <Target class="section-icon" />
+          Цель сборки
+        </h2>
+      </div>
       
-      <div v-if="selectedGoal" class="goal-description">
-        <p>{{ selectedGoal.description }}</p>
+      <div class="goal-selector">
+        <select
+          :value="selectedGoalId"
+          @change="onGoalChange"
+          class="form-select goal-select"
+          data-testid="select-assembly-goal"
+        >
+          <option value="">Свободная сборка (без цели)</option>
+          <option v-for="goal in assemblyGoals" :key="goal.id" :value="goal.id">
+            {{ goal.name }}
+          </option>
+        </select>
+
+        <div v-if="selectedGoal" class="goal-description">
+          <p>{{ selectedGoal.description }}</p>
+        </div>
       </div>
     </div>
 
@@ -48,9 +53,9 @@
         </div>
       </div>
 
-      <button @click="$emit('show-checklist')" class="btn btn-sm btn-outline">
+      <button @click="$emit('show-recommendations')" class="btn btn-sm btn-outline">
         <ListChecks class="btn-icon" />
-        Показать детальный чек-лист
+        Перейти к рекомендациям
       </button>
     </div>
   </div>
@@ -66,7 +71,7 @@ const props = defineProps({
   evaluation: { type: Object, default: null }
 });
 
-const emit = defineEmits(['update:selectedGoalId', 'show-checklist']);
+const emit = defineEmits(['update:selectedGoalId', 'show-recommendations']);
 
 const selectedGoal = computed(() => {
   return props.assemblyGoals?.find(g => g.id === props.selectedGoalId);
@@ -115,11 +120,23 @@ const onGoalChange = (event) => {
   height: 16px;
 }
 .goal-section {
-  margin-bottom: 1.5rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.goal-zone {
+  padding: 1.25rem;
+  background: #111827;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 12px;
+}
+
+.section-header h2 {
+  margin-bottom: 1rem;
 }
 
 .goal-selector {
-  margin-bottom: 1rem;
+  margin-bottom: 0;
 }
 
 .goal-select {
@@ -143,7 +160,7 @@ const onGoalChange = (event) => {
 }
 
 .evaluation-summary {
-  margin-top: 1.5rem;
+  margin-top: 0;
   padding: 1.25rem;
   background: #111827;
   border: 1px solid rgba(59, 130, 246, 0.3);

@@ -25,7 +25,7 @@
     <!-- Пусто -->
     <div v-else-if="!details || details.length === 0" class="card">
       <div class="empty-state">
-        <p>📭 В этой сборке пока нет деталей</p>
+        <p>В этой сборке пока нет деталей</p>
         <p class="hint">Добавьте первую деталь слева</p>
       </div>
     </div>

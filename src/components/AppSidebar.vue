@@ -37,7 +37,7 @@ import { User, Telescope, Camera, Star } from 'lucide-vue-next';
 .sidebar {
   width: 260px;
   background: #111827;
-  border-right: 1px solid rgba(59, 130, 246, 0.3);
+  border-right: 1px solid rgba(96, 165, 250, 0.3);
   padding: 1.5rem 0;
   position: relative;
   z-index: 1;
@@ -81,7 +81,7 @@ import { User, Telescope, Camera, Star } from 'lucide-vue-next';
   .sidebar {
     position: fixed; z-index: 500; right: 0; bottom: 0; left: 0;
     width: auto; padding: .35rem max(.35rem, env(safe-area-inset-right)) calc(.35rem + env(safe-area-inset-bottom)) max(.35rem, env(safe-area-inset-left));
-    border-top: 1px solid rgba(59,130,246,.35); border-right: 0;
+    border-top: 1px solid rgba(96, 165, 250, 0.35); border-right: 0;
     box-shadow: 0 -8px 30px rgba(0,0,0,.35);
   }
   .nav { flex-direction: row; gap: .2rem; }
